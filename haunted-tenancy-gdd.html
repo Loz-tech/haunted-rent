@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haunted Tenancy — Game Design Document</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --accent2: #533483;
+    --text: #eaeaea;
+    --text2: #a0a0b0;
+    --green: #4ecca3;
+    --gold: #f0c040;
+    --radius: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  h1 { font-size:2.4em; color:var(--accent); margin-bottom:4px; letter-spacing:-0.5px; }
+  h1 + p { color:var(--text2); font-size:1.1em; margin-bottom:32px; }
+  h2 {
+    font-size:1.55em; color:var(--accent); margin:44px 0 16px;
+    padding-bottom:6px; border-bottom:2px solid var(--accent2);
+  }
+  h3 { font-size:1.2em; color:var(--gold); margin:24px 0 10px; }
+  h4 { font-size:1.05em; color:var(--text); margin:16px 0 6px; }
+  p, li { max-width:70ch; }
+  p { margin-bottom:10px; color:var(--text2); }
+  ul, ol { margin:6px 0 12px 22px; color:var(--text2); }
+  li { margin-bottom:3px; }
+  li strong, p strong { color:var(--text); }
+  a { color:var(--accent); }
+
+  .highlight-box {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border-left: 4px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 18px 22px;
+    margin: 16px 0 22px;
+    font-size: 1.05em;
+  }
+  .highlight-box p { color: var(--text); margin:0; }
+
+  table {
+    width:100%; border-collapse:collapse; margin:12px 0 20px;
+    font-size:0.92em; border-radius:var(--radius); overflow:hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  th, td { padding:10px 14px; text-align:left; }
+  th { background: var(--surface2); color: var(--gold); font-weight:600; white-space:nowrap; }
+  td { background: var(--surface); color: var(--text2); border-bottom:1px solid rgba(255,255,255,0.04); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background: rgba(233,69,96,0.08); }
+  td:first-child { color:var(--text); font-weight:500; }
+
+  .mda-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;
+    margin:14px 0 22px;
+  }
+  .mda-card {
+    background: var(--surface); border-radius:var(--radius);
+    padding:18px; border-top:3px solid var(--accent);
+  }
+  .mda-card h3 { margin-top:0; font-size:1em; }
+  .mda-card ul { margin-left:16px; }
+  .mda-card:nth-child(2) { border-top-color: var(--gold); }
+  .mda-card:nth-child(3) { border-top-color: var(--green); }
+
+  .loop-diagram {
+    background: var(--surface); border-radius:var(--radius);
+    padding:20px 24px; margin:14px 0 22px; text-align:center;
+    font-family:'Courier New', monospace; font-size:0.88em;
+    line-height:1.5; color:var(--text); white-space:pre;
+    overflow-x:auto;
+  }
+
+  .flow-ascii {
+    background: var(--surface); border-radius:var(--radius);
+    padding:16px 20px; margin:14px 0 22px; text-align:center;
+    font-family:'Courier New', monospace; font-size:0.85em;
+    line-height:1.4; color:var(--text2); white-space:pre;
+    overflow-x:auto;
+  }
+
+  .checklist-demo {
+    background: var(--surface); border:1px solid rgba(255,255,255,0.06);
+    border-radius:var(--radius); padding:16px 20px; margin:12px 0 20px;
+    font-family:'Courier New', monospace; font-size:0.85em;
+    line-height:1.6; color:var(--text); white-space:pre; overflow-x:auto;
+  }
+  .checklist-demo span.safe { color:var(--green); }
+  .checklist-demo span.flag { color:var(--accent); }
+  .checklist-demo span.pending { color:var(--text2); }
+
+  .ui-mockup {
+    background: var(--surface); border:1px solid rgba(255,255,255,0.06);
+    border-radius:var(--radius); padding:16px 20px; margin:12px 0 20px;
+    font-family:'Courier New', monospace; font-size:0.78em;
+    line-height:1.35; color:var(--text2); white-space:pre; overflow-x:auto;
+  }
+
+  .todo-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;
+    margin:14px 0 22px;
+  }
+  .todo-card {
+    background: var(--surface); border-radius:var(--radius); padding:16px;
+  }
+  .todo-card h3 { margin-top:0; font-size:1em; margin-bottom:8px; }
+  .todo-card li { font-size:0.9em; }
+  .todo-card:nth-child(1) { border-left:3px solid var(--accent); }
+  .todo-card:nth-child(2) { border-left:3px solid var(--gold); }
+  .todo-card:nth-child(3) { border-left:3px solid var(--green); }
+
+  code {
+    font-family:'Courier New', monospace;
+    background:var(--surface2); padding:1px 6px; border-radius:3px;
+    font-size:0.9em;
+  }
+
+  .divider { border:none; border-top:1px solid rgba(255,255,255,0.06); margin:32px 0; }
+
+  @media (max-width:700px) {
+    .mda-grid, .todo-grid { grid-template-columns:1fr; }
+    body { padding:20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Haunted Tenancy</h1>
+<p>Game Design Document — v1.1<br>
+Genre: 2D Horror Comedy Management Sim<br>
+Platform: Godot Engine / Pixel Art</p>
+
+<div class="highlight-box">
+<p><strong>Elevator Pitch:</strong> <em>Papers, Please</em> meets survival horror management.
+You're a cheapskate tenant in a cursed house. Rent is impossibly low — because every room
+is haunted. Inspect rooms daily against safety checklists. Get cursed when you mess up.
+Save $2,000 to escape. Don't die.</p>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>1. MDA Framework</h2>
+
+<div class="mda-grid">
+  <div class="mda-card">
+    <h3>Mechanics (Rules)</h3>
+    <ul>
+      <li><strong>Core verb:</strong> Room inspection via safety checklists — toggle ✓ SAFE / ⚠ FLAG</li>
+      <li><strong>Resources:</strong> Money ($), Time (day timer), Health (injury/curse slots)</li>
+      <li><strong>Progression:</strong> Weekly room unlocks (W1: 3, W2: 5, W3: 8, W4: 11, W5+: 12 max)</li>
+      <li><strong>Constraints:</strong> Time limit, curse debuffs stack, equipment costs money, 3+ curses = game over</li>
+    </ul>
+  </div>
+  <div class="mda-card">
+    <h3>Dynamics (Behavior)</h3>
+    <ul>
+      <li><strong>Risk/reward:</strong> Spend on equipment to prevent curses, or save faster but risk spirals</li>
+      <li><strong>Time triage:</strong> More rooms = less time per room → harder skip decisions</li>
+      <li><strong>Cascade effect:</strong> Curse → weaker inspection → more mistakes → more curses</li>
+      <li><strong>Routine mastery:</strong> Learn entity rules, get fast, then new entities break routine</li>
+    </ul>
+  </div>
+  <div class="mda-card">
+    <h3>Aesthetics (Experience)</h3>
+    <ul>
+      <li><strong>Tension:</strong> Timer + escalating threats + consequence accumulation</li>
+      <li><strong>Dark humor:</strong> Bureaucratic horror framing, absurd premise</li>
+      <li><strong>Relief:</strong> End-of-day survival, successful clears, savings milestone</li>
+      <li><strong>Competence:</strong> Learning patterns, optimizing routine, mastering economy</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>2. Core Loop (Per Day)</h2>
+
+<div class="loop-diagram">
+┌──────────────────────────────────────────────────────────────┐
+│  MORNING            DAYTIME (timed)            EVENING         │
+│  ─────────         ───────────────────       ─────────────    │
+│  • Status check    ┌ SAFE TRACK ──────────┐  • Combat results │
+│  • Buy equipment   │ Inspect room         │  • Pay expenses   │
+│  • Review curses   │ Fill checklist       │  • Calculate $    │
+│    ↓               │ → $10 per room       │  • Apply curses   │
+│  BEGIN DAY         └──────────────────────┘  • Save progress  │
+│    ↓                         OR                               │
+│                    ┌ EXILE TRACK ──────────┐                  │
+│                    │ 1. Clue gathering     │                  │
+│                    │ 2. PC research (wiki) │                  │
+│                    │ 3. Buy exile items    │                  │
+│                    │ 4. Ritual combat      │ (time paused)    │
+│                    │ → $50–100 + room      │                  │
+│                    │   permanently cleared │                  │
+│                    └───────────────────────┘                  │
+│  ⏱ ~10 sec          ⏱ ~3-5 min              ⏱ ~20 sec       │
+└──────────────────────────────────────────────────────────────┘
+</div>
+
+<p><strong>Time constraint:</strong> Day ends at 6pm game time ≈ 5 real minutes. Each room
+inspection consumes time. Skip room = instant but $10 penalty + entity grows stronger.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>3. Room System (Two Tracks)</h2>
+
+<div class="highlight-box">
+<p><strong>Two approaches per room:</strong><br>
+<strong>SAFE TRACK:</strong> Inspect + fill checklist → $10 per room. Safe, steady income,
+room stays active next day.<br>
+<strong>EXILE TRACK:</strong> 4-phase process → ritual combat → banish entity permanently.
+High risk, $50–100 reward, room cleared forever. Failing combat = game over.</p>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.1 Room Map → Room Scene</h3>
+
+<ol>
+  <li>House map: clickable grid of rooms (e.g. 3×4). Each room shows entity icon + status (pending/cleared/skipped/banished)</li>
+  <li>Click room → room scene loads in center panel</li>
+  <li>Room composed of: base tileset (study/bedroom/kitchen/bathroom/hallway) + entity prop layer + anomaly visual layer</li>
+  <li>Click objects in room → inspection pop-up opens (Papers, Please style)</li>
+</ol>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.2 Object Inspection (Papers, Please Style)</h3>
+
+<p>Click any object in room view → small overlay window opens with detailed pixel view of that
+specific object/area. Shows either <strong>normal</strong> or <strong>anomalous</strong> state
+based on daily anomaly generation. Some objects have sub-hotspots within pop-up
+(e.g., click candle area → pop-up shows candle count + arrangement).</p>
+
+<h4>Clickable Objects Per Entity</h4>
+
+<table>
+  <tr><th>Entity</th><th>Inspectable Objects</th></tr>
+  <tr><td>Ghost</td><td>Mirror, thermometer, shelves (floating check), EVP device, EMF meter</td></tr>
+  <tr><td>Poltergeist</td><td>Chairs, table surface, TV/electronics, wall surface, window/glass</td></tr>
+  <tr><td>Vampire</td><td>Mirror, floor (soil trail), windows, mannequin/bed, garlic wreath</td></tr>
+  <tr><td>Zombie</td><td>Door chain, floor (dragging marks), window bars, body container, air vent (smell)</td></tr>
+  <tr><td>Demon</td><td>Floor (circle area), cross/wall, candles, wall symbols, thermometer</td></tr>
+  <tr><td>Witch</td><td>Shelves (hex bags), floor (bones), candles, windowsill (familiar), walls (sigils)</td></tr>
+  <tr><td>Shadow Entity</td><td>Light switch/fixture, room corners, dream catcher, bed, wall near bed</td></tr>
+  <tr><td>Possession</td><td>Wall text, chair/bed (levitation check), NPC body, holy water dish</td></tr>
+</table>
+
+<h4>Anomaly Generation (Per Room, Per Day)</h4>
+
+<p>Each day, system randomly marks 2–4 checklist items as anomalous for each room.
+Visual layer conditionally renders anomalies on room scene + pop-ups.
+Difficulty gradient: W1 = 2 obvious anomalies, W4 = 4 subtle anomalies.</p>
+
+<div class="checklist-demo">
+Example: Demon's Study — Day 14
+─────────────────────────────────────
+<span class="safe">✓ Summoning circle absent (floor clean)</span>
+<span class="flag">⚠ Candles ≤3 (4 candles visible, arc pattern)</span>
+<span class="safe">✓ Cross intact on wall</span>
+<span class="flag">⚠ No sulfur smell (yellow haze near vent)</span>
+<span class="safe">✓ Temp &lt;98°F (reads 72°F)</span>
+<span class="flag">⚠ No inverted symbols (faint pentagram on wall)</span>
+─────────────────────────────────────
+System picks: items 2, 4, 6 anomalous → visual clues rendered
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.3 SAFE Track (Checklist Inspection)</h3>
+
+<p>Fallback for rooms player cannot exile yet. Same as original design but integrated
+with object inspection: player clicks objects → sees normal/anomalous states in pop-ups
+→ checklist panel (right side) lists items → toggle ✓ SAFE / ⚠ FLAG in any order
+→ all items answered → Submit unlocks → correct answers revealed → wrong = injury/curse.</p>
+
+<div class="checklist-demo">
+┌──────────────────────────────────────┐
+│  ROOM 3 — DEMON'S STUDY              │
+│                                      │
+│  <span class="safe">✓ Summoning circle absent          </span>│
+│  <span class="flag">⚠ Candles: 3 or fewer (4 found)    </span>│
+│  <span class="safe">✓ Crucifix still on wall           </span>│
+│  <span class="pending">□ No sulfur smell detected         </span>│
+│  <span class="safe">✓ Room temperature &lt;98°F           </span>│
+│  <span class="pending">□ No inverted symbols on surfaces  </span>│
+│                                      │
+│  [ <span class="safe">✓ SAFE</span> ]  [ <span class="flag">⚠ FLAG</span> ]  [ SKIP → ]  │
+└──────────────────────────────────────┘
+<em>Free-form order. Click item → room view highlights object.</em>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.4 EXILE TRACK — Phase 1: Clue Gathering</h3>
+
+<p>Enter room. Click objects freely. Each inspection yields a <strong>clue card</strong> —
+no toggling, no answering. Just observation. Clue cards stored in journal for PC research.</p>
+
+<div class="checklist-demo">
+CLUE CARDS COLLECTED — Demon's Study
+─────────────────────────────────────
+🔍 CANDLES: "4 candles arranged in circular pattern"
+🔍 FLOOR: "Faint white chalk marks, 5-point outline"
+🔍 WALL: "Small inverted pentagram near bookshelf"
+🔍 THERMOMETER: "73°F — within normal range"
+🔍 CROSS: "Mounted on wall, no damage"
+🔍 AIR VENT: "Faint yellow mist seeping from grate"
+─────────────────────────────────────
+4 of 6 objects inspected — 4 clue cards collected
+</div>
+
+<p><strong>Key design:</strong> Player must decide when to stop investigating and move to research.
+More clues = better identification accuracy, but costs daytime minutes.
+Too few clues → risk misidentifying the entity → wrong exile attempt = disaster.</p>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.5 EXILE TRACK — Phase 2: Research (Haunted Wiki PC)</h3>
+
+<p>Return to player's room → open laptop → access <strong>HAUNTED-WIKI.DARKNET</strong>.
+Cross-reference collected clue cards against entity profiles.
+Each entity has a profile page listing its symptoms, behavior, and banishing ritual.</p>
+
+<div class="ui-mockup">
+┌──────────────────────────────────────────────────┐
+│  💻 HAUNTED-WIKI.DARKNET                          │
+│  ──────────────────────────────────────────────── │
+│  YOUR CLUES: 4 candles | chalk marks | pentagram │
+│               yellow mist | 73°F | cross intact   │
+│                                                    │
+│  ┌─ENTITY MATCH─────────────────────────────────┐ │
+│  │ DEMON (Confidence: HIGH — 4/6 clues match)    │ │
+│  │ • 4+ candles in circle/arc                   │ │
+│  │ • Chalk summoning marks ✓                    │ │
+│  │ • Inverted symbols ✓                         │ │
+│  │ • Sulfur smell ✓                             │ │
+│  │ • Heat haze (temp >98°F) ✗ — 73°F normal     │ │
+│  │ • Broken cross ✗ — cross intact              │ │
+│  └──────────────────────────────────────────────┘ │
+│                                                    │
+│  ┌─BANISHING RITUAL─────────────────────────────┐ │
+│  │ DEMON — Turn Sequence                        │ │
+│  │ ─────────────────────────────────────        │ │
+│  │ Turn 1: Flame gather   → Holy Water          │ │
+│  │ Turn 2: Curse mark     → Salt Circle         │ │
+│  │ Turn 3: Dark summon    → Crucifix            │ │
+│  │ Turn 4: Weakened       → EXORCISM            │ │
+│  │ ⚠ Wrong item = damage + item wasted           │ │
+│  │ ⚠ Miss a turn = ritual stalls + demon buff   │ │
+│  └──────────────────────────────────────────────┘ │
+│                                                    │
+│  [ LOCK IN: DEMON ]  [ KEEP RESEARCHING ]          │
+└──────────────────────────────────────────────────┘
+</div>
+
+<p><strong>Clue matching logic:</strong> Each entity profile lists 5–7 symptoms.
+System compares collected clue cards against each profile. Overlapping symptoms
+between entities create ambiguity (witch also has candles + symbols but no chalk marks).
+Player must discern pattern.</p>
+
+<p><strong>Profile unlocking:</strong> Wiki starts with Ghost, Poltergeist, Vampire entries.
+Other entities unlock as player encounters them. Player can browse freely, study patterns
+between turns.</p>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.6 EXILE TRACK — Phase 3: Prepare Exile Kit</h3>
+
+<p>Website shows required items for each entity's ritual. Player must buy them from shop.
+Items have unit charges. Player may buy extras for safety — e.g., 2 Holy Waters in case
+first misses. Total cost per exile attempt ranges $15–$30 depending on entity.</p>
+
+<h4>Exile Kit Requirements &amp; Combat Use</h4>
+
+<table>
+  <tr><th>Item</th><th>Cost</th><th>Combat Use</th><th>Uses</th><th>Used Against</th></tr>
+  <tr><td>Holy Water</td><td>$10</td><td>Counter Demon flame, Possession blast. Deals dmg to any.</td><td>2</td><td>Demon, Possession</td></tr>
+  <tr><td>Salt Circle</td><td>$5</td><td>Block Demon curse, Ghost cold snap, Poltergeist throw</td><td>1</td><td>Demon, Ghost, Poltergeist</td></tr>
+  <tr><td>Crucifix</td><td>$10</td><td>Finish Demon summon. +dmg vs Demon.</td><td>1</td><td>Demon</td></tr>
+  <tr><td>Iron Nails</td><td>$5</td><td>Counter Ghost phase-through. Block poltergeist.</td><td>1</td><td>Ghost</td></tr>
+  <tr><td>Sage Bundle</td><td>$8</td><td>Counter Ghost wail, Shadow fear drain. Remove 1 curse mid-combat.</td><td>2</td><td>Ghost, Shadow Entity</td></tr>
+  <tr><td>Anchor Kit</td><td>$8</td><td>Counter Poltergeist furniture throw.</td><td>1</td><td>Poltergeist</td></tr>
+  <tr><td>Garlic Wreath</td><td>$10</td><td>Counter Vampire lunge, halves damage.</td><td>1 fight</td><td>Vampire</td></tr>
+  <tr><td>Silver Mirror</td><td>$10</td><td>Counter Vampire charm, Witch hex + images. Reveal hidden.</td><td>1</td><td>Vampire, Witch</td></tr>
+  <tr><td>Silver Stake</td><td>$12</td><td>Counter Vampire blood drain. Finish vampire.</td><td>1</td><td>Vampire</td></tr>
+  <tr><td>Door Chain</td><td>$5</td><td>Counter Zombie heavy slam.</td><td>1</td><td>Zombie</td></tr>
+  <tr><td>Blessed Oil</td><td>$7</td><td>Counter Zombie infect bite, remove poison, heal 2 HP.</td><td>2</td><td>Zombie</td></tr>
+  <tr><td>Purification Salt</td><td>$5</td><td>Counter Zombie corpse drag.</td><td>1</td><td>Zombie</td></tr>
+  <tr><td>Fire Kit</td><td>$12</td><td>Counter Witch brew/heal. +dmg vs Witch.</td><td>1</td><td>Witch</td></tr>
+  <tr><td>Dream Catcher</td><td>$12</td><td>Counter Shadow Entity vanish.</td><td>1 fight</td><td>Shadow Entity</td></tr>
+  <tr><td>Light Talisman</td><td>$10</td><td>Reveal Shadow Entity position, counters ambush.</td><td>1 fight</td><td>Shadow Entity</td></tr>
+  <tr><td>Iron Restraints</td><td>$15</td><td>Counter Possession possess attempt.</td><td>1</td><td>Possession</td></tr>
+</table>
+
+<p><strong>Exile kit total cost per entity:</strong> Ghost $18 | Poltergeist $18 |
+Vampire $32 | Zombie $17 | Demon $25 | Witch $30 | Shadow Entity $30 | Possession $35.
+Player may also buy First-Aid Kit ($7, heal 5 HP) and Therapy ($15, cure paranoia)
+as combat consumables.</p>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.7 EXILE TRACK — Phase 4: Ritual Combat</h3>
+
+<p>Return to room with exile items prepared → initiate ritual. Combat is turn-based,
+rock-paper-scissors: enemy telegraphs move → player picks correct counter-item from inventory.
+Time paused during combat. No HP sponges, no minions — knowledge/memory puzzle under pressure.</p>
+
+<h4>Combat UI</h4>
+
+<div class="ui-mockup">
+┌──────────────────────────────────────────────────────┐
+│  ⚔ EXILE PHASE — DEMON'S STUDY                        │
+│                                                       │
+│  ┌──ENEMY──┐      COMBAT LOG       ┌──PLAYER──┐      │
+│  │ DEMON    │      ─────────        │ YOU       │      │
+│  │ [sprite] │  "Demon's hands       │ [sprite]  │      │
+│  │          │   glow orange-red.    │ HP ████░░ │      │
+│  │ Tell:    │   Flame gathering—"   │           │      │
+│  │ "Flame   │                      │ ITEMS:    │      │
+│  │  gather" │  "You splash Holy     │ Holy Water│      │
+│  │          │   Water. Flames      │ Salt      │      │
+│  │ Progress │   douse. Ritual      │ Crucifix  │      │
+│  │ ■□□□ 1/4 │   advances."         │           │      │
+│  └──────────┘                      └───────────┘      │
+│                                                       │
+│  [A] Holy Water  [B] Salt Circle  [C] Crucifix        │
+│  [D] Punch       [E] FLEE                             │
+│                                                       │
+│  Ritual progress: ■□□□ 1/4  —  Items left: 2/3       │
+└──────────────────────────────────────────────────────┘
+</div>
+
+<h4>Enemy Ritual Sequences (Full Table)</h4>
+
+<table>
+  <tr><th>Entity</th><th>Turn 1</th><th>Turn 2</th><th>Turn 3</th><th>Turn 4</th></tr>
+  <tr>
+    <td>Ghost</td>
+    <td>Phase through → Iron Nails</td>
+    <td>Cold snap → Salt Line</td>
+    <td>Wail → Sage Bundle</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Poltergeist</td>
+    <td>Throw furniture → Anchor Kit</td>
+    <td>Double throw → Salt Line</td>
+    <td>Room shake → Anchor + Salt</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Vampire</td>
+    <td>Lunge → Garlic Wreath</td>
+    <td>Charm → Silver Mirror</td>
+    <td>Blood drain → Silver Stake</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Zombie</td>
+    <td>Heavy slam → Door Chain</td>
+    <td>Infect bite → Blessed Oil</td>
+    <td>Corpse drag → Purification Salt</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Demon</td>
+    <td>Flame gather → Holy Water</td>
+    <td>Curse mark → Salt Circle</td>
+    <td>Dark summon → Crucifix</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Witch</td>
+    <td>Hex cast → Silver Mirror</td>
+    <td>Brew heal → Fire Kit</td>
+    <td>Mirror images → Silver Mirror</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Shadow Entity</td>
+    <td>Vanish → Dream Catcher</td>
+    <td>Ambush → Light Talisman</td>
+    <td>Fear drain → Sage Bundle</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+  <tr>
+    <td>Possession</td>
+    <td>Psychic blast → Holy Water</td>
+    <td>Possess attempt → Iron Restraints</td>
+    <td>Puppet self-harm → Holy Water</td>
+    <td>Weakened → EXORCISM</td>
+  </tr>
+</table>
+
+<h4>Preparation Tier → Combat Difficulty</h4>
+
+<table>
+  <tr><th>Tier</th><th>Condition</th><th>Tell Visibility</th><th>Player Buff</th></tr>
+  <tr><td>Perfect</td><td>Correct ID + all required items</td><td>All 4 tells fully visible (text + animation)</td><td>+2 damage per correct counter</td></tr>
+  <tr><td>Good</td><td>Correct ID + partial items (missing 1)</td><td>Turns 1, 3 visible. Turns 2, 4 vague hints.</td><td>+1 damage</td></tr>
+  <tr><td>Decent</td><td>Correct ID only, bought no exile items</td><td>Only turn 1 tell visible. Rest: "The demon stares…"</td><td>None</td></tr>
+  <tr><td>Poor</td><td>Wrong ID, but bought items for something</td><td>No tells. Enemy silent. Random damage.</td><td>−1 damage</td></tr>
+  <tr><td>Critical</td><td>Wrong ID + completely wrong items</td><td>Fake tells! "Flame gathering" actually curse.</td><td>−2 damage, player starts cursed</td></tr>
+</table>
+
+<h4>Turn Resolution</h4>
+
+<ol>
+  <li><strong>Enemy tell</strong> — player sees text hint + animation. Visibility depends on prep tier.</li>
+  <li><strong>Player picks item</strong> — from inventory. Correct item → ritual advances. Wrong item → damage + item wasted.</li>
+  <li><strong>Player action resolves</strong> — e.g. "You splash Holy Water. Flames douse. Demon shrieks — ritual advances."</li>
+  <li><strong>Enemy action resolves</strong> — damage dealt if wrong counter was used. If correct, enemy blocked.</li>
+  <li><strong>Next turn</strong> — sequence repeats. All 4 correct counters → Final EXORCISM → victory.</li>
+</ol>
+
+<h4>Wrong Counter = Damage + Setback</h4>
+
+<div class="checklist-demo">
+Demon's tell: "Flame gathering" (expect Holy Water)
+Player picks: Crucifix
+
+<span class="flag">❌ "You raise the crucifix. Demon laughs.
+    Fireball strikes — 5 damage. Crucifix wasted."</span>
+
+→ Ritual stalls. Demon gains advantage (+2 damage next turn).
+→ Next turn: same move repeats. MUST counter correctly.
+→ 2–3 wrong counters = death.
+</div>
+
+<h4>Combat Item Options Per Turn</h4>
+
+<table>
+  <tr><th>Action</th><th>Effect</th></tr>
+  <tr><td>[Item from inventory]</td><td>Consume exile item. If correct = ritual progress + block damage. If wrong = damage (4–6), item wasted, ritual stalls.</td></tr>
+  <tr><td>Punch (no item)</td><td>Deal 2 dmg to enemy but no ritual progress. Player takes 6 dmg. Guaranteed bad outcome if repeated.</td></tr>
+  <tr><td>Flee</td><td>Escape combat. Room lost. Entity enrages (+50% damage, no tells, longer sequence next attempt). −$20 penalty.</td></tr>
+</table>
+
+<h4>Combat Outcomes</h4>
+
+<table>
+  <tr><th>Result</th><th>Consequence</th></tr>
+  <tr><td>Victory + Perfect Prep</td><td>Room cleared permanently. $100 bonus. Full heal.<br><em>"Room exorcised. Energy neutral. Still no discount." — Landlord email</em></td></tr>
+  <tr><td>Victory + Good Prep</td><td>Room cleared. $50 bonus. Minor injury (auto-heals next day free).</td></tr>
+  <tr><td>Victory + Decent Prep</td><td>Room cleared. $25 bonus. Random minor curse possible.</td></tr>
+  <tr><td>Victory + Poor Prep</td><td>Room cleared. No bonus. Guaranteed 1 injury + possible curse.</td></tr>
+  <tr><td>Victory + Critical Prep</td><td>Room cleared. No bonus. Guaranteed major curse + injury.</td></tr>
+  <tr><td>Defeat (HP = 0)</td><td>Game over. Restart Day 1.<br><em>"Another tenant. Another deposit. Shame." — Landlord email</em></td></tr>
+</table>
+
+<h4>Curse Effects in Combat</h4>
+
+<table>
+  <tr><th>Curse</th><th>Combat Penalty</th></tr>
+  <tr><td>Physical Injury</td><td>HP reduced by 3 entering combat</td></tr>
+  <tr><td>Vision Curse</td><td>25% chance enemy tell text is garbled ("Fl*me g*thering")</td></tr>
+  <tr><td>Aura Curse</td><td>Enemy sequence order may shift randomly mid-fight</td></tr>
+  <tr><td>Paranoia</td><td>25% chance fake tell shown ("Flame gathering" but actually Curse Mark)</td></tr>
+  <tr><td>Fatigue</td><td>Player gets 3 seconds to read tell before it fades. Normal: unlimited.</td></tr>
+</table>
+
+<p><strong>Multiple curses stack.</strong> Vision + Paranoia + Fatigue = nearly unplayable.
+Strong incentive to cure before exile attempts.</p>
+
+<h4>Combat Edge Cases</h4>
+
+<table>
+  <tr><th>Case</th><th>Handling</th></tr>
+  <tr><td>Player has correct item but picks wrong one</td><td>Item consumed + damage. Wasted. No progress.</td></tr>
+  <tr><td>Player bought extras (2 Holy Waters)</td><td>If first misses, second available. Good prep rewarded.</td></tr>
+  <tr><td>Player has 0 exile items, enters combat</td><td>Only Punch or Flee available. Punch = 2 dmg, no progress, 6 dmg taken. Near-certain death. Prevented by warning pop-up.</td></tr>
+  <tr><td>Entity enraged from previous flee</td><td>Sequence extends to 6 turns. No tells visible. Damage doubled. Fleeing twice on same room = entity breaks confinement, infects adjacent room.</td></tr>
+  <tr><td>Perfect prep but player misremembers order</td><td>Still takes damage. Knowledge must be executed correctly. Wiki always re-checkable before combat.</td></tr>
+  <tr><td>Player defeats entity without buying all items</td><td>Possible with Decent/Good prep + skilled item conservation. Designed as high-skill path.</td></tr>
+  <tr><td>Run out of correct item mid-sequence</td><td>Forced to Punch. No ritual progress. Must survive until sequence cycles or Flee.</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>4. Curse &amp; Injury System (Persistent Debuffs)</h2>
+
+<table>
+  <tr>
+    <th>Type</th><th>Source</th><th>Daytime Effect</th><th>Combat Effect</th><th>Cure ($)</th>
+  </tr>
+  <tr>
+    <td>Physical Injury</td>
+    <td>Violent entity, wrong ⚠ flag, wrong combat counter</td>
+    <td>−20% inspection speed</td>
+    <td>HP reduced by 3 entering combat</td>
+    <td>First-aid kit ($7)</td>
+  </tr>
+  <tr>
+    <td>Vision Curse</td>
+    <td>Demon, witch, wrong exile attempt</td>
+    <td>Room view blurred, some anomalies hidden</td>
+    <td>25% chance enemy tell text garbled ("Fl*me g*thering")</td>
+    <td>Ritual cleansing ($25)</td>
+  </tr>
+  <tr>
+    <td>Aura Curse</td>
+    <td>Ghost, shadow entity, wrong exile attempt</td>
+    <td>Entity aggression up, checklist items shuffle position</td>
+    <td>Enemy sequence order may shift randomly mid-fight</td>
+    <td>Prof. cleansing ($30)</td>
+  </tr>
+  <tr>
+    <td>Paranoia</td>
+    <td>3+ mistakes in 1 day</td>
+    <td>False positives — "see" anomalies that aren't real</td>
+    <td>25% chance fake tell shown (shows wrong move)</td>
+    <td>Therapy ($15)</td>
+  </tr>
+  <tr>
+    <td>Fatigue</td>
+    <td>Time accumulation, no rest</td>
+    <td>Time ticks 30% faster, movement sluggish</td>
+    <td>Only 3 sec to read tell before it fades</td>
+    <td>Rest day ($50 lost income)</td>
+  </tr>
+</table>
+
+<p><strong>Lose conditions:</strong> 3+ active curses/injuries → <em>"Evicted"</em> (game over). OR HP reaches 0 in exile combat → <em>"Another tenant. Another deposit. Shame."</em>
+Screen: character dragged into darkness, landlord email.</p>
+
+<p><strong>Free rest day:</strong> Every 7th day (Sunday), player can rest for free → clears fatigue, +20% speed next day.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>5. Economy</h2>
+
+<div class="checklist-demo" style="font-size:0.92em;">
+<strong>INCOME:</strong>
+  + $50 daily savings (vs $120 normal rent — you "save" $70 conceptually)
+  + $10 per correctly cleared room (SAFE track)
+  + $50–$100 per banished entity (EXILE track, one-time)
+  + $30 weekly bonus (all rooms inspected that week)
+
+<strong>EXPENSES:</strong>
+  − Exile items: $5–$15 per item (one exile kit = $15–$35 total per entity)
+  − Equipment (SAFE track): $5–$30 per item
+  − Cures: $7–$30 per treatment
+  − Skip penalty: −$10 per skipped room
+  − Flee combat: −$20 penalty
+─────────────────────────────────────────
+<strong>ESCAPE GOAL: $2,000 saved</strong>
+</div>
+
+<p><strong>Tension:</strong> Equipment buys safety, but delays escape. Aggressive saving risks
+curse spiral. Player must find optimal pace.</p>
+
+<h3>Equipment Shop</h3>
+
+<table>
+  <tr><th>Item</th><th>Cost</th><th>Category</th><th>Effect</th><th>Charges</th></tr>
+  <tr><td>Salt Line</td><td>$5</td><td>Combat / Defense</td><td>Counter Demon curse mark, Ghost cold snap, Poltergeist double throw. Also blocks 1 ghost/poltergeist room for 1 day (SAFE track).</td><td>1 use</td></tr>
+  <tr><td>Holy Water</td><td>$10</td><td>Combat</td><td>Counter Demon flame, Possession psychic blast. −2 difficulty on demon/witch checklists (SAFE track).</td><td>2 uses</td></tr>
+  <tr><td>Crucifix</td><td>$10</td><td>Combat</td><td>Counter Demon dark summon. Bonus damage vs demon. Blocks curse effect in combat.</td><td>1 use</td></tr>
+  <tr><td>Iron Nails</td><td>$5</td><td>Combat</td><td>Counter Ghost phase-through. +3 ATK vs ghost.</td><td>1 use</td></tr>
+  <tr><td>Sage Bundle</td><td>$8</td><td>Combat / Cure</td><td>Counter Ghost wail, Shadow fear drain. Remove 1 curse or debuff mid-combat.</td><td>2 uses</td></tr>
+  <tr><td>Anchor Kit</td><td>$8</td><td>Combat</td><td>Counter Poltergeist furniture throw. Prevents disarm.</td><td>1 use</td></tr>
+  <tr><td>Garlic Wreath</td><td>$10</td><td>Combat</td><td>Counter Vampire lunge. Halves vampire damage for entire fight.</td><td>1 fight</td></tr>
+  <tr><td>Silver Mirror</td><td>$10</td><td>Combat / Inspection</td><td>Counter Vampire charm, Witch hex + mirror images. Reveals hidden vampire/witch clues (SAFE track).</td><td>1 use</td></tr>
+  <tr><td>Silver Stake</td><td>$12</td><td>Combat</td><td>Counter Vampire blood drain. Deals 8 dmg vs vampire.</td><td>1 use</td></tr>
+  <tr><td>Door Chain</td><td>$5</td><td>Combat</td><td>Counter Zombie heavy slam. Blocks one heavy hit.</td><td>1 use</td></tr>
+  <tr><td>Blessed Oil</td><td>$7</td><td>Combat / Cure</td><td>Counter Zombie infect bite. Removes poison, heals 2 HP.</td><td>2 uses</td></tr>
+  <tr><td>Purification Salt</td><td>$5</td><td>Combat</td><td>Counter Zombie corpse drag.</td><td>1 use</td></tr>
+  <tr><td>Fire Kit</td><td>$12</td><td>Combat</td><td>Counter Witch brew/heal. Deals 6 dmg vs Witch.</td><td>1 use</td></tr>
+  <tr><td>Dream Catcher</td><td>$12</td><td>Combat / Defense</td><td>Counter Shadow Entity vanish. Blocks shadow entity for 1 night (SAFE track).</td><td>1 fight</td></tr>
+  <tr><td>Light Talisman</td><td>$10</td><td>Combat</td><td>Reveal Shadow Entity position, counter ambush. +2 ATK.</td><td>1 fight</td></tr>
+  <tr><td>Iron Restraints</td><td>$15</td><td>Combat</td><td>Counter Possession possess attempt. Blocks self-attack.</td><td>1 use</td></tr>
+  <tr><td>EMF Reader</td><td>$8</td><td>Inspection</td><td>Auto-correct 1 ghost checklist item per room. Reveal ghost-type clues in inspection pop-ups.</td><td>3 rooms</td></tr>
+  <tr><td>Night Goggles</td><td>$25</td><td>Inspection / Curse Bypass</td><td>See anomalies in dark rooms. Negate vision curse penalty in inspection + combat.</td><td>1 day</td></tr>
+  <tr><td>First-Aid Kit</td><td>$7</td><td>Cure</td><td>Heal 5 HP mid-combat OR remove 1 physical injury.</td><td>2 uses</td></tr>
+  <tr><td>Therapy Session</td><td>$15</td><td>Cure</td><td>Remove paranoia.</td><td>Instant</td></tr>
+  <tr><td>Ritual Cleansing</td><td>$25</td><td>Cure</td><td>Remove 1 vision or aura curse.</td><td>Instant</td></tr>
+  <tr><td>Prof. Cleansing</td><td>$30</td><td>Cure</td><td>Remove 1 any curse.</td><td>Instant</td></tr>
+</table>
+
+<p><strong>Removed from v1.0:</strong> Exorcism Kit ($30) — replaced by ritual combat mechanic. Player performs
+exile manually now.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>6. Weekly Progression</h2>
+
+<table>
+  <tr><th>Week</th><th>Rooms</th><th>New Entities</th><th>Notes</th></tr>
+  <tr><td>1</td><td>3</td><td>Ghost, Poltergeist</td><td>Tutorial week, 7-min day timer</td></tr>
+  <tr><td>2</td><td>5</td><td>Vampire, Zombie</td><td>Timer tightens to 5.5 min</td></tr>
+  <tr><td>3</td><td>8</td><td>Demon, Witch</td><td>Curse combos dangerous; first real test</td></tr>
+  <tr><td>4</td><td>11</td><td>Shadow Entity, Possession</td><td>Max pressure, 4.5 min timer</td></tr>
+  <tr><td>5+</td><td>12</td><td>All active</td><td>Escape race, special events, endurance</td></tr>
+</table>
+
+<p><strong>Narrative gating:</strong> Each week the landlord emails: <em>"Fixed the plumbing
+in the east wing. Ignore the Latin chanting. Rent still due the 1st."</em></p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>7. 2D UI Layout</h2>
+
+<h3>Daytime — Inspection / Object Pop-Up</h3>
+
+<div class="ui-mockup">
+┌─────────────────────────────────────────────────────────────┐
+│ DAY 14 │ ⏱ 02:34 LEFT │ 💰 $640 / $2,000 │ 😈 2 CURSES    │
+├──────────┬──────────────────────────────────────────────────┤
+│          │  ROOM — DEMON'S STUDY                            │
+│  HOUSE   │  ┌────────────────────┐ ┌──────────────────────┐ │
+│  MAP     │  │ CHECKLIST (7 items)│ │ ROOM VIEW (2D pixel) │ │
+│ (left)   │  │ ✓ Summon circle OK │ │ ░░██▓▓▒▒░░          │ │
+│          │  │ ⚠ Candles ≤3 (4!)  │ │                      │ │
+│ ┌──┬──┐  │  │ □ Temp &lt;98°F      │ │    ┌─POP-UP────┐    │ │
+│ │R1│R2│  │  │ ✓ Cross on wall    │ │    │  CANDLES   │    │ │
+│ │──┼──│  │  │ □ No sulfur smell  │ │    │  Count: 4  │    │ │
+│ │R3│R4│  │  │ ...                │ │    │  Pattern:  │    │ │
+│ │  │  │  │  │                    │ │    │  arc shape │    │ │
+│ └──┴──┘  │  └────────────────────┘ │    └───────────┘    │ │
+│          │                         └──────────────────────┘ │
+│  R1=Ghost   R3=Demon (active)                              │
+│  R2=Cleared R4=??? (locked)                                │
+├──────────┬──────────────────────────────────────────────────┤
+│ [🛒 SHOP] [💻 PC ROOM → wiki research] [⏭ SKIP] [🌙 END]  │
+└──────────┴──────────────────────────────────────────────────┘
+<em>Object inspection pop-up overlays room view. Click candle area →</em>
+<em>pop-up opens with close-up detail. Papers, Please style.</em>
+</div>
+
+<h3>Player Room — PC Research (Haunted Wiki)</h3>
+
+<div class="ui-mockup">
+┌─────────────────────────────────────────────────────────────┐
+│  💻 HAUNTED-WIKI.DARKNET                     🌙 END DAY      │
+│                                                              │
+│  YOUR CLUE CARDS (right panel)    ENTITY PROFILES (left)     │
+│  ┌──────────────────────┐ ┌─────────────────────────────┐   │
+│  │ 🔍 CANDLES: 4 count  │ │ DEMON                        │   │
+│  │ 🔍 FLOOR: chalk marks│ │ ───────────────────────      │   │
+│  │ 🔍 WALL: pentagram   │ │ Symptoms:                    │   │
+│  │ 🔍 THERM: 73°F OK    │ │ • 4+ candles in circle       │   │
+│  │ 🔍 CROSS: intact     │ │ • Chalk summoning marks      │   │
+│  │ 🔍 VENT: yellow mist │ │ • Inverted symbols           │   │
+│  └──────────────────────┘ │ • Sulfur smell                │   │
+│                            │ • Heat haze (>98°F)           │   │
+│  ENTITY MATCHES:          │ • Broken/missing cross        │   │
+│  ┌──────────────────────┐ │                              │   │
+│  │ DEMON 4/6 match HIGH │ │ BANISHING RITUAL:            │   │
+│  │ WITCH 3/6 match LOW  │ │ Turn 1 → Holy Water          │   │
+│  │ SHADOW 1/6 match LOW │ │ Turn 2 → Salt Circle         │   │
+│  └──────────────────────┘ │ Turn 3 → Crucifix             │   │
+│                            │ Turn 4 → EXORCISM            │   │
+│  [LOCK IN: DEMON]  [KEEP RESEARCHING]  [← BACK TO ROOM]   │   │
+│                            └─────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+<em>Time paused during wiki research. Cross-reference clues freely.</em>
+</div>
+
+<h3>Exile Combat Screen</h3>
+
+<div class="ui-mockup">
+┌──────────────────────────────────────────────────────────────┐
+│  ⚔ EXILE PHASE — DEMON'S STUDY                               │
+│                                                               │
+│  ┌──ENEMY──┐      COMBAT LOG          ┌──PLAYER──┐           │
+│  │ DEMON    │      ─────────           │ YOU       │           │
+│  │ [sprite] │  "Demon's hands glow     │ [sprite]  │           │
+│  │ [anim]   │   orange-red. Flame      │ HP ██░░░░ │           │
+│  │          │   gathering—"            │ 3/20 HP   │           │
+│  │ TELL:    │                          │           │           │
+│  │ "Flame   │  → [A] Holy Water        │ INVENTORY:│           │
+│  │  gather" │  ✅ Fire doused!         │ Holy W ×1 │           │
+│  │          │     Demon recoils.       │ Salt  ×1  │           │
+│  │ Progress │     +1 ritual step.      │ Crucif ×1 │           │
+│  │ ■□□□ 1/4 │                          │           │           │
+│  └──────────┘                          └───────────┘           │
+│                                                               │
+│  [A] Holy Water  [B] Salt Circle  [C] Crucifix                 │
+│  [D] Punch       [E] FLEE (−$20)                               │
+│                                                               │
+│  ⏸ TIME PAUSED — Items left: 2/3  —  Ritual: 1/4 complete     │
+└──────────────────────────────────────────────────────────────┘
+<em>World of Horror style turn-based ritual combat. Time frozen.</em>
+</div>
+
+<h3>Screen States (Updated)</h3>
+
+<table>
+  <tr><th>Screen</th><th>Purpose</th><th>Time</th></tr>
+  <tr><td>Morning</td><td>Status overview, shop, begin day</td><td>Paused</td></tr>
+  <tr><td>Daytime — Map</td><td>Main hub. Click rooms, access shop, enter PC room</td><td>Running</td></tr>
+  <tr><td>Daytime — Room (inspect)</td><td>Object inspection pop-ups, checklist (SAFE track)</td><td>Running</td></tr>
+  <tr><td>Daytime — Room (clue gather)</td><td>Object inspection pop-ups, clue cards collected (EXILE track)</td><td>Running</td></tr>
+  <tr><td>Daytime — PC Room</td><td>Haunted-wiki.darknet research, cross-reference clues, lock entity ID</td><td>Paused</td></tr>
+  <tr><td>Daytime — Combat</td><td>Turn-based ritual exile. Rock-paper-scissors item counters</td><td>Paused</td></tr>
+  <tr><td>Evening</td><td>Results, mistakes revealed, expense report, save</td><td>Paused</td></tr>
+  <tr><td>Night</td><td>Narrative vignette, auto-save</td><td>Paused</td></tr>
+  <tr><td>Sunday</td><td>Weekly report, new rooms unlock, free rest option</td><td>Paused</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>8. Narrative &amp; Tone</h2>
+
+<div class="highlight-box">
+<p><strong>Genre:</strong> Dark comedy, bureaucratic horror.<br>
+<strong>Core joke:</strong> You are not heroic. You're a miser who refuses to pay $1,200 rent.
+For $200/month you'll live with actual demons.</p>
+</div>
+
+<p><strong>Tone inspirations:</strong></p>
+<ul>
+  <li><em>Papers, Please</em> — bureaucratic dread</li>
+  <li><em>What We Do In The Shadows</em> — supernatural mundanity</li>
+  <li><em>House of Leaves</em> — unsettling domestic horror</li>
+</ul>
+
+<h3>Sample Flavor Text</h3>
+<ul>
+  <li><strong>Landlord email:</strong> <em>"Room 4 has a 'presence.' We're calling it an amenity. No rent adjustment."</em></li>
+  <li><strong>Entity description:</strong> <em>"Standard Issue Revenant, Class B. Non-violent unless provoked. Provoked = looked at directly."</em></li>
+  <li><strong>End-of-day:</strong> <em>"You hear faint crying from Room 3. You put in earplugs. $200/month. Two hundred."</em></li>
+</ul>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>9. Edge Cases &amp; Balance</h2>
+
+<table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr>
+    <td>Curse death spiral</td>
+    <td>Free weekly rest day, mercy mechanic (3rd mistake in a row → warning, not extra curse), emergency loan option</td>
+  </tr>
+  <tr>
+    <td>Dominant strategy</td>
+    <td>No universal equipment; entity variety forces different prep per room type. Equipment has charges, not infinite</td>
+  </tr>
+  <tr>
+    <td>Overwhelming late game</td>
+    <td>Skip-room mechanic, equipment auto-clears tough rooms, optional rest days. Banished rooms permanently reduce daily workload.</td>
+  </tr>
+  <tr>
+    <td>Boring early game</td>
+    <td>Tutorial day has "emergency" (ghost breaks confinement), creates immediate stake. First exile attempt tutored.</td>
+  </tr>
+  <tr>
+    <td>Visual boredom</td>
+    <td>Room states change based on: entity mood, active curses, equipment used, day count, season</td>
+  </tr>
+  <tr>
+    <td>Clarity of failure</td>
+    <td>End-of-day review shows exactly which checklist items were wrong and why. Combat shows which counter was wrong.</td>
+  </tr>
+  <tr>
+    <td>Runaway economy</td>
+    <td>$2,000 goal with escalating expenses + exile kit costs keeps target at ~25–40 day range</td>
+  </tr>
+  <tr>
+    <td>Combat trivialization</td>
+    <td>Preparation quality gates tell visibility. Must earn clues + buy items. Memory check + curse penalties keep tension.</td>
+  </tr>
+  <tr>
+    <td>Wiki = walkthrough</td>
+    <td>Clues are partial — never 100% match. Red herrings. Entity profiles intentionally ambiguous at edges. Player must interpret.</td>
+  </tr>
+  <tr>
+    <td>Combat feels disconnected</td>
+    <td>Clue gathering and wiki research happen in real daytime (no pause). Combat is gated by knowledge earned during play.</td>
+  </tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>10. Technical Notes (Godot)</h2>
+
+<table>
+  <tr><th>Aspect</th><th>Recommendation</th></tr>
+  <tr><td>Nodes</td><td>Control nodes for UI panels, Node2D for room view renders, TileMap for room scenes. Separate scenes for combat, wiki, pop-ups.</td></tr>
+  <tr><td>State</td><td>Godot Resources (.tres) for entity definitions (symptoms, ritual sequences, tells). JSON save files for player progress, room status, inventory.</td></tr>
+  <tr><td>Animation</td><td>AnimationPlayer for entity combat sprites, room object states (anomalous/normal), curse effects (screen shake, vignette, blur).</td></tr>
+  <tr><td>Pixel art</td><td>32×32 or 16×16 tileset for rooms, limited palette (4–8 colors per room for mood). Entity sprites: 64×64 combat portraits.</td></tr>
+  <tr><td>Timer</td><td>Godot scene tree timer. Paused during: shop, wiki research, combat, evening/night, Sunday. Runs during: room inspection, clue gathering, map navigation.</td></tr>
+  <tr><td>Combat system</td><td>Turn-based state machine. Each entity Resource defines sequence array of {tell_text, correct_item_id}. Prep tier filters tell visibility.</td></tr>
+  <tr><td>Clue matching</td><td>Each entity profile has string[] symptoms. Clue cards have {symptom_tag, observed_value}. Compare tags for match count → confidence display.</td></tr>
+  <tr><td>Save</td><td>Autosave at night phase; one save slot; JSON serialization. Save includes: day, money, inventory, room statuses, curses, banished rooms.</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>11. Development Roadmap</h2>
+
+<div class="todo-grid">
+  <div class="todo-card">
+    <h3>Vertical Slice (M1)</h3>
+    <ul>
+      <li>3 rooms (Ghost, Poltergeist, Vampire)</li>
+      <li>Core inspection checklist UI + free-form answering</li>
+      <li>Object inspection pop-ups (Papers, Please style)</li>
+      <li>Day/night loop + timer</li>
+      <li>1 curse type (Physical Injury)</li>
+      <li>Basic economy (shop + savings)</li>
+      <li>End-of-day review screen</li>
+      <li>Exile combat for Ghost (1 entity, 4-turn ritual)</li>
+      <li>Haunted Wiki PC screen (Ghost profile only)</li>
+    </ul>
+  </div>
+  <div class="todo-card">
+    <h3>Alpha (M2)</h3>
+    <ul>
+      <li>All 8 entity types + full ritual sequences</li>
+      <li>Full curse system (5 types) + combat effects</li>
+      <li>Weekly room unlock progression</li>
+      <li>Equipment shop with all 22 items</li>
+      <li>Sunday rest day mechanic</li>
+      <li>Lose conditions (3 curses + combat death)</li>
+      <li>Save/load</li>
+      <li>Clue gathering + clue card system</li>
+      <li>Wiki with full entity profiles + clue matching</li>
+      <li>Combat prep tier system (tell visibility gated)</li>
+    </ul>
+  </div>
+  <div class="todo-card">
+    <h3>Beta (M3)</h3>
+    <ul>
+      <li>Full 12-room house</li>
+      <li>All visual room states</li>
+      <li>Sound design (ambient, UI, SFX)</li>
+      <li>Narrative emails &amp; flavor text</li>
+      <li>Difficulty curve tuning</li>
+      <li>Playtest &amp; balance</li>
+      <li>Pixel art pass</li>
+      <li>Win screen ($2,000 escape)</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>12. Unique Selling Points</h2>
+
+<ol>
+  <li><strong>Familiar verb, fresh context:</strong> <em>Papers, Please</em> inspection loop applied to horror comedy survival</li>
+  <li><strong>Two-track risk system:</strong> SAFE track (steady income, stay alive) vs EXILE track (permanently banish entity, big reward, risk death)</li>
+  <li><strong>Knowledge-based combat:</strong> World of Horror style ritual exile. No grinding — you win by correctly identifying entity and memorizing its banishing sequence. Wrong = die.</li>
+  <li><strong>Compounding consequences:</strong> Curses aren't binary HP loss — they alter how you perceive and interact with the game, including combat tells</li>
+  <li><strong>Dark comedic tone:</strong> Bureaucratic horror is under-explored in games. Landlord emails about "energy-neutral rooms."</li>
+  <li><strong>Tight economic tension:</strong> Every dollar on safety delays escape; every skipped room risks death. Exile kits cost $15–$35 — high stakes.</li>
+  <li><strong>Weekly escalation fits flow channel:</strong> New rooms break routine, mastery of old threats creates satisfaction loop. Banished rooms stay gone — tangible progress.</li>
+</ol>
+
+<hr class="divider">
+
+<p style="text-align:center; color:var(--text2); font-size:0.85em; margin-top:40px;">
+Haunted Tenancy GDD v1.1 — Last updated May 2026<br>
+Built for Godot Engine — Pixel Art — Management Sim
+</p>
+
+</body>
+</html>
