@@ -3,739 +3,1077 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Haunted Tenancy — Full Room View Mockup</title>
+<title>Haunted Tenancy — Multi-Floor Building</title>
 <style>
   :root {
-    --bg:       #0a0a14;
-    --surface:  #12122a;
-    --border:   #1e1e3a;
-    --accent:   #e94560;
-    --gold:     #f0c040;
-    --green:    #4ecca3;
-    --text:     #eaeaea;
-    --text2:    #5a5a7a;
-    --danger:   #ff2222;
-    --room-bg:  #0d0d1f;
-    --radius:   4px;
+    --bg: #050510;
+    --surface: #0a0a1a;
+    --border: #1a1a35;
+    --accent: #e94560;
+    --gold: #f0c040;
+    --green: #4ecca3;
+    --text: #eaeaea;
+    --text2: #5a5a7a;
+    --danger: #ff2222;
+    --warning: #ff8800;
+    --radius: 4px;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: 'Courier New', monospace;
     display: flex; justify-content: center; align-items: center;
-    min-height: 100vh; padding: 12px;
+    min-height: 100vh; padding: 10px; overflow: hidden;
   }
   .game-frame {
-    width: 1200px; max-width:100%;
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    display: flex; flex-direction: column;
-    box-shadow: 0 0 50px rgba(0,0,0,0.7);
+    width: 1200px; height: 720px; max-width: 100%;
+    background: var(--bg); border: 2px solid var(--border);
+    border-radius: var(--radius); display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8); position: relative; overflow: hidden;
   }
 
-  /* top bar */
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 20px;
-    background: #060612;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.78em;
+    padding: 8px 18px; background: #03030a;
+    border-bottom: 1px solid var(--border); font-size: 0.8em; flex-shrink: 0;
   }
   .topbar .day    { color: var(--accent); font-weight:bold; }
   .topbar .timer  { color: var(--gold); }
   .topbar .money  { color: var(--green); }
   .topbar .curses { color: var(--danger); }
-  .topbar .sep    { color: var(--text2); margin:0 10px; }
 
-  /* ── main view: FLOOR PLAN (screen 1) ── */
-  .main-row {
-    display: flex; flex:1; min-height:550px;
-  }
+  .screen { display: none; flex: 1; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ════════════════════════════════════════ */
+  /* ═══════ SCREEN 1: FLOOR PLAN ═══════ */
+  /* ════════════════════════════════════════ */
   .floor-plan-wrapper {
-    flex:1; display:flex; flex-direction:column;
-    padding: 14px;
-    gap: 8px;
-  }
-  .floor-plan-wrapper h2 {
-    font-size: 0.85em; color: var(--text2); text-transform: uppercase;
-    letter-spacing: 3px; text-align: center;
-  }
-  .floor-plan {
-    flex:1;
+    flex:1; padding: 12px 18px; display: flex; flex-direction: column; gap: 6px;
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    gap: 3px;
-    padding: 8px;
-    background: #050510;
-    border: 1px solid var(--border);
-    border-radius: 4px;
   }
+
+  /* floor selector tabs */
+  .floor-selector {
+    display: flex; gap: 4px; justify-content: center; margin-bottom: 6px;
+  }
+  .floor-tab {
+    padding: 5px 22px; border: 1px solid var(--border); border-radius: 3px;
+    cursor: pointer; font-family: inherit; font-size: 0.72em; color: var(--text2);
+    background: transparent; transition: 0.12s; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .floor-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .floor-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,0.08); }
+
+  .floor-plan {
+    flex:1; display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 3px; padding: 6px;
+    background: #030308; border: 1px solid var(--border);
+    border-radius: 4px; position: relative;
+  }
+
+  /* floor-specific ambient */
+  .floor-plan.floor-basement { background: #060610; box-shadow: inset 0 0 60px rgba(0,0,0,0.5); }
+  .floor-plan.floor-1 { background: #080814; }
+  .floor-plan.floor-2 { background: #070718; }
+  .floor-plan.floor-attic { background: #0c0c18; box-shadow: inset 0 0 30px rgba(200,180,120,0.03); }
+
   .map-cell {
     border: 1px solid rgba(255,255,255,0.03);
     border-radius: 2px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.5em;
-    position: relative;
+    font-size: 0.5em; text-align: center; line-height: 1.3;
+    position: relative; cursor: default; padding: 2px;
     transition: 0.15s;
-    text-align: center;
-    line-height: 1.3;
-    padding: 2px;
   }
   .map-cell.hall {
-    background: rgba(255,255,255,0.015);
-    color: #252540;
-    cursor: default;
+    background: rgba(255,255,255,0.01); color: #1a1a30; cursor: default;
   }
+  .map-cell.stair {
+    background: rgba(255,255,255,0.015); color: #252540; font-size: 0.45em;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+  }
+  .map-cell.stair:hover { color: var(--text); border-color: var(--gold); background: rgba(240,192,64,0.04); }
   .map-cell.room {
-    background: rgba(255,255,255,0.02);
-    cursor: pointer;
-    color: var(--text2);
-    font-weight: bold;
+    background: rgba(255,255,255,0.02); cursor: pointer; color: var(--text2);
+    border: 1px solid rgba(255,255,255,0.06);
   }
   .map-cell.room:hover {
-    background: rgba(233,69,96,0.06);
-    border-color: var(--accent);
-    color: var(--text);
-    box-shadow: inset 0 0 10px rgba(233,69,96,0.1);
-  }
-  .map-cell.room.active {
-    background: rgba(233,69,96,0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 16px rgba(233,69,96,0.2), inset 0 0 10px rgba(233,69,96,0.1);
-  }
-  .map-cell.room.banished {
-    background: rgba(78,204,163,0.04);
-    border-color: rgba(78,204,163,0.15);
-    color: var(--green);
-    opacity: 0.4;
+    background: rgba(233,69,96,0.1); border-color: var(--accent);
+    color: var(--text); box-shadow: 0 0 12px rgba(233,69,96,0.1);
   }
   .map-cell.player-room {
-    background: rgba(78,204,163,0.06);
-    border-color: var(--green);
-    color: var(--green);
-    cursor: pointer;
-    font-weight: bold;
+    background: rgba(78,204,163,0.06); border-color: rgba(78,204,163,0.3);
+    color: var(--green); cursor: pointer;
   }
-  .map-cell.player-room:hover {
-    background: rgba(78,204,163,0.12);
+  .map-cell.player-room:hover { background: rgba(78,204,163,0.12); }
+  .map-cell.banished {
+    background: rgba(78,204,163,0.04); border-color: rgba(78,204,163,0.15);
+    color: var(--green); opacity: 0.4; cursor: not-allowed;
   }
-  .map-cell .entity-icon { font-size: 0.8em; display: block; margin-bottom: 1px; }
-  .map-cell .room-label   { font-size: 0.6em; opacity: 0.75; display: block; }
-  .map-cell .status-badge { font-size: 0.5em; opacity: 0.55; display: block; }
+  .map-cell.enraged {
+    background: rgba(255,20,40,0.06);
+    border-color: rgba(255,20,40,0.25);
+    color: var(--danger);
+    animation: pulseBorder 1.5s ease-in-out infinite;
+  }
+  @keyframes pulseBorder {
+    0%,100% { box-shadow: inset 0 0 8px rgba(255,20,40,0.06); }
+    50%    { box-shadow: inset 0 0 16px rgba(255,20,40,0.15); }
+  }
+  .map-cell .room-label { font-size: 0.58em; opacity: 0.75; display: block; }
+  .map-cell .danger-mini {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 10px; height: 3px; background: var(--border); border-radius: 1px;
+  }
+  .map-cell .danger-mini.fill { background: var(--accent); }
+  .map-cell .danger-mini.critical { background: var(--danger); }
 
-  /* ── FULL ROOM VIEW (screen 2) ── */
-  .room-view {
-    display: none; /* toggled via JS */
-    flex:1; flex-direction:column;
-    padding: 12px 16px;
-    position: relative;
-    min-width: 0;
-    gap: 8px;
+  .map-legend {
+    position: absolute; bottom: 14px; right: 18px;
+    font-size: 0.55em; color: var(--text2); text-align: right; line-height: 1.6;
   }
-  .room-view.active { display: flex; }
+  .floor-label {
+    position: absolute; top: 14px; left: 18px;
+    font-size: 0.6em; color: var(--text2); text-transform: uppercase; letter-spacing: 2px;
+  }
+
+  /* ═══════ SCREEN 2: FULL ROOM VIEW ═══════ */
+  .room-view { flex:1; flex-direction: column; position: relative; }
   .room-topbar {
     display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
+    padding: 8px 18px; background: #03030a; border-bottom: 1px solid var(--border); flex-shrink: 0;
   }
-  .room-topbar h2 { font-size: 0.95em; color: var(--accent); white-space: nowrap; }
-  .room-topbar .entity-badge {
-    font-size: 0.65em; color: var(--text2); background: rgba(233,69,96,0.06);
-    padding: 2px 8px; border-radius: 3px;
-    border: 1px solid rgba(233,69,96,0.3);
+  .room-topbar h2 { font-size: 0.88em; color: var(--accent); }
+  .room-floor-tag {
+    font-size: 0.62em; color: var(--text2); background: rgba(255,255,255,0.03);
+    padding: 2px 8px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.06);
   }
-  .room-topbar .danger-bar {
+  .entity-unknown { font-size: 0.72em; color: var(--text2); }
+  .entity-known   { font-size: 0.72em; color: var(--gold); }
+
+  .danger-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 18px; background: #03030a; flex-shrink: 0; font-size: 0.65em;
+  }
+  .danger-label { color: var(--text2); min-width: 80px; }
+  .danger-track { flex:1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .danger-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 4px; transition: width 0.3s, background 0.3s; }
+  .danger-fill.critical { background: var(--danger); }
+  .danger-fill.warning  { background: var(--warning); }
+  .danger-value { min-width: 32px; text-align: right; color: var(--text2); }
+  .suspicion-row {
     display: flex; align-items: center; gap: 6px;
-    font-size: 0.58em; color: var(--danger);
+    padding: 4px 18px; background: #03030a; flex-shrink: 0; font-size: 0.6em;
+    border-top: 1px solid var(--border);
   }
-  .danger-fill {
-    width: 80px; height: 6px; background: var(--border); border-radius: 3px;
-    overflow: hidden;
-  }
-  .danger-fill .fill {
-    height: 100%; width: 40%; background: var(--accent); border-radius: 3px;
-    transition: width 0.3s;
-  }
-  .danger-fill .fill.critical { background: var(--danger); width: 85%; }
+  .suspicion-label { color: var(--warning); min-width: 90px; }
+  .suspicion-track { flex:1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .suspicion-fill { height: 100%; width: 0%; background: var(--warning); border-radius: 3px; transition: width 0.3s; }
 
   .room-scene {
-    position: relative; flex: 1;
-    background: #0c0c1a;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
+    flex: 1; position: relative; background: #0a0a18;
     background-image:
-      linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+      linear-gradient(rgba(255,255,255,0.008) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.008) 1px, transparent 1px);
     background-size: 32px 32px;
-    /* full width, no side panels */
+    overflow: hidden; cursor: crosshair;
   }
   .room-obj {
-    position: absolute; cursor: pointer; transition: 0.12s;
-    border-radius: 3px; display: flex; align-items: center; justify-content: center;
-    font-size: 0.6em; color: var(--text2);
-    border: 1px solid transparent;
-    text-align: center;
-    line-height: 1.35;
-    padding: 2px;
-    user-select: none;
+    position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 0.5em; color: var(--text2); text-align: center; line-height: 1.3;
+    padding: 2px; border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 3px; background: rgba(255,255,255,0.02);
+    transition: 0.12s; user-select: none;
   }
-  .room-obj:hover {
-    outline: 2px solid var(--accent); outline-offset: 2px;
-    z-index: 10;
+  .room-obj:hover { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 5; filter: brightness(1.3); }
+  .room-obj.anomaly { border-color: rgba(233,69,96,0.1); animation: anomalyPulse 2.5s ease-in-out infinite alternate; }
+  @keyframes anomalyPulse {
+    0% { box-shadow: inset 0 0 4px rgba(233,69,96,0.03); }
+    100% { box-shadow: inset 0 0 12px rgba(233,69,96,0.1); }
   }
-  /* different room object styles by entity type (color-coded) */
-  .room-obj.demon { border-color: rgba(233,69,96,0.15); }
-  .room-obj.ghost { border-color: rgba(160,160,255,0.15); }
-  .room-obj.witch { border-color: rgba(180,100,180,0.15); }
-  .room-obj.anomaly {
-    background: rgba(233,69,96,0.08);
-    border-color: rgba(233,69,96,0.35);
-    animation: flickerBorder 1.5s ease-in-out infinite alternate;
+  .room-obj.anomaly.found { border-color: rgba(78,204,163,0.4) !important; outline: 2px solid var(--green) !important; outline-offset: 2px; animation: none; }
+  .clues-overlay {
+    position: absolute; top: 8px; right: 8px; width: 220px;
+    background: rgba(3,3,10,0.92); border: 1px solid var(--border);
+    border-radius: 3px; padding: 8px; font-size: 0.62em; z-index: 10;
   }
-  @keyframes flickerBorder {
-    0% { border-color: rgba(233,69,96,0.25); }
-    100% { border-color: rgba(233,69,96,0.5); }
-  }
-  /* danger indicator during investigation */
-  .room-warning {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    background: rgba(255,20,40,0.08); color: var(--danger);
-    border: 1px solid rgba(255,20,40,0.2); padding: 4px 12px;
-    border-radius: 3px; font-size: 0.65em; letter-spacing: 1px;
-    pointer-events: none; opacity: 0; transition: opacity 0.3s;
-  }
-  .room-warning.visible { opacity: 1; }
+  .clues-overlay h4 { color: var(--gold); margin-bottom: 4px; font-size: 0.9em; }
+  .clue-entry { padding: 2px 0; color: var(--text2); border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; gap: 4px; }
+  .clue-entry .src { color: var(--accent); opacity: 0.7; }
 
-  /* combat burst overlay (random event) */
-  .combat-overlay {
-    position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,0.85);
-    display: none; align-items: center; justify-content: center;
+  .float-text {
+    position: absolute; pointer-events: none; font-size: 0.58em; padding: 3px 6px;
+    border-radius: 3px; white-space: nowrap; z-index: 20;
+    animation: floatUp 0.8s ease-out forwards;
   }
+  .float-text.good { color: var(--green); background: rgba(78,204,163,0.1); border: 1px solid rgba(78,204,163,0.2); }
+  .float-text.bad  { color: var(--danger); background: rgba(255,20,40,0.1); border: 1px solid rgba(255,20,40,0.2); }
+  .float-text.clue{ color: var(--gold); background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.15); }
+  @keyframes floatUp {
+    0%   { opacity:1; transform: translateY(0) scale(1); }
+    100% { opacity:0; transform: translateY(-40px) scale(0.9); }
+  }
+
+  /* ═══════ SCREEN 3: LAPTOP ═══════ */
+  .laptop-view { flex:1; flex-direction: column; padding: 16px 20px; gap: 10px; }
+  .laptop-topbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-shrink: 0; }
+  .laptop-topbar h2 { font-size: 0.88em; color: var(--green); }
+  .laptop-screen { flex:1; background: #06060f; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; overflow: hidden; }
+  .laptop-nav { display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 10px; }
+  .laptop-nav .btn { padding: 4px 14px; font-size: 0.68em; }
+  .laptop-nav .btn.active { border-color: var(--accent); color: var(--accent); }
+  .laptop-content { flex:1; overflow-y: auto; font-size: 0.78em; }
+  .wiki-card { background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 3px; padding: 8px 10px; margin-bottom: 6px; display: flex; gap: 10px; cursor: pointer; transition: 0.12s; }
+  .wiki-card:hover { background: rgba(233,69,96,0.04); border-color: rgba(233,69,96,0.15); }
+  .wiki-card .emoji { font-size: 1.2em; }
+  .wiki-card .title { color: var(--accent); font-weight: bold; margin-bottom: 2px; }
+  .wiki-card .desc { font-size: 0.75em; color: var(--text2); }
+  .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .shop-item { background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 3px; padding: 6px; text-align: center; cursor: pointer; transition: 0.12s; font-size: 0.72em; }
+  .shop-item:hover { border-color: var(--green); }
+  .shop-item .name { color: var(--text); font-weight: bold; margin-bottom: 2px; }
+  .shop-item .cost { color: var(--gold); font-size: 0.8em; }
+  .shop-item .desc { font-size: 0.68em; color: var(--text2); margin-top: 2px; }
+  .shop-item .buy-btn { margin-top: 4px; width: 100%; padding: 3px 0; border: 1px solid var(--green); color: var(--green); background: rgba(78,204,163,0.06); border-radius: 2px; cursor: pointer; font-family: inherit; font-size: 0.62em; transition: 0.12s; }
+  .shop-item .buy-btn:hover { background: rgba(78,204,163,0.12); }
+
+  /* ═══════ COMBAT ═══════ */
+  .combat-overlay { position: absolute; inset: 0; z-index: 400; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; }
   .combat-overlay.active { display: flex; }
-  .combat-alert {
-    width: 420px;
-    background: var(--surface);
-    border: 2px solid var(--accent);
-    border-radius: var(--radius);
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 0 60px rgba(233,69,96,0.3);
-  }
-  .combat-alert h3 { font-size: 1.4em; color: var(--accent); margin-bottom: 8px; }
-  .combat-alert .combat-text { font-size: 0.85em; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
-  .combat-alert .combat-tell {
-    background: rgba(233,69,96,0.05); border: 1px solid rgba(233,69,96,0.15);
-    padding: 10px; margin: 10px 0; border-radius: 3px;
-    font-size: 0.82em; color: var(--text);
-  }
+  .combat-panel { width: 540px; background: var(--surface); border: 2px solid var(--accent); border-radius: var(--radius); padding: 22px; box-shadow: 0 0 60px rgba(233,69,96,0.25); }
+  .combat-panel h3 { font-size: 1.1em; color: var(--accent); text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+  .combat-log { background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 10px; font-size: 0.78em; color: var(--text); min-height: 60px; margin-bottom: 12px; border-radius: 3px; }
+  .combat-turn { font-size: 0.82em; color: var(--gold); margin-bottom: 10px; text-align: center; padding: 8px; background: rgba(240,192,64,0.04); border: 1px solid rgba(240,192,64,0.1); border-radius: 3px; }
+  .combat-actions { display: flex; gap: 6px; justify-content: center; }
+  .combat-actions .btn { padding: 6px 16px; font-size: 0.78em; }
+  .combat-actions .btn.danger { border-color: var(--danger); color: var(--danger); }
+  .combat-actions .btn.correct { border-color: var(--green); color: var(--green); }
+  .hp-bar { margin-bottom: 10px; }
+  .hp-bar .label { font-size: 0.65em; color: var(--text2); margin-bottom: 4px; }
+  .hp-fill { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .hp-fill .fill { height: 100%; background: var(--green); transition: width 0.3s; }
+
+  .penalty-toast { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(255,20,40,0.1); border: 1px solid rgba(255,20,40,0.3); color: var(--danger); padding: 8px 18px; border-radius: 3px; font-size: 0.72em; z-index: 300; pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s; }
+  .penalty-toast.active { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* bottom bar */
-  .bottombar {
-    display: flex; gap: 8px; padding: 10px 20px;
-    border-top: 1px solid var(--border); background: #060612;
-    align-items: center;
-  }
-  .btn {
-    padding: 6px 18px; border: 1px solid var(--border);
-    border-radius: 3px; cursor: pointer; font-family: inherit;
-    font-size: 0.74em; color: var(--text2); background: transparent;
-    transition: 0.12s;
-  }
+  .bottombar { display: flex; gap: 8px; padding: 8px 18px; border-top: 1px solid var(--border); background: #03030a; flex-shrink: 0; align-items: center; }
+  .btn { padding: 5px 16px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 0.72em; color: var(--text2); background: transparent; transition: 0.12s; }
   .btn:hover { border-color: var(--accent); color: var(--accent); }
   .btn.primary { color: var(--accent); border-color: var(--accent); }
   .btn.green { color: var(--green); border-color: var(--green); }
+  .btn.danger { color: var(--danger); border-color: var(--danger); }
   .spacer { flex: 1; }
-  .context-note {
-    font-size: 0.58em; color: var(--text2); opacity: 0.5;
-    padding-right: 8px;
-  }
-
-  /* ── PLAYER ROOM / LAPTOP SCREEN (screen 3) ── */
-  .laptop-view {
-    display: none; flex:1; flex-direction: column;
-    padding: 16px 20px;
-    gap: 12px;
-  }
-  .laptop-view.active { display: flex; }
-  .laptop-topbar {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid var(--border); padding-bottom: 8px;
-  }
-  .laptop-topbar h2 { font-size: 0.9em; color: var(--green); }
-  .laptop-screen {
-    flex:1; background: #080814; border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px;
-    display: flex; flex-direction: column; gap: 10px;
-    overflow-y: auto;
-  }
-  .laptop-nav {
-    display: flex; gap: 6px; border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-  }
-  .laptop-nav .btn { padding: 4px 14px; font-size: 0.7em; }
-  .laptop-nav .btn.active { border-color: var(--accent); color: var(--accent); }
-  .laptop-content { flex:1; font-size: 0.8em; line-height: 1.6; overflow-y: auto; }
-
-  /* laptop sections */
-  .wiki-entry {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 3px; padding: 10px; margin-bottom: 8px;
-    display: flex; gap: 10px; cursor: pointer;
-  }
-  .wiki-entry:hover { background: rgba(233,69,96,0.04); border-color: rgba(233,69,96,0.15); }
-  .wiki-entry .entity-icon { flex-shrink: 0; font-size: 1.2em; }
-  .wiki-entry .entity-info { flex:1; }
-  .wiki-entry .entity-name { color: var(--accent); font-weight: bold; margin-bottom: 2px; }
-  .wiki-entry .entity-desc { font-size: 0.8em; color: var(--text2); }
-
-  .shop-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  .shop-item {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 3px; padding: 8px; text-align: center;
-    cursor: pointer; transition: 0.12s;
-    font-size: 0.78em;
-  }
-  .shop-item:hover { border-color: var(--green); background: rgba(78,204,163,0.04); }
-  .shop-item .item-name { color: var(--text); font-weight: bold; margin-bottom: 3px; }
-  .shop-item .item-cost { color: var(--gold); font-size: 0.85em; }
-  .shop-item .item-desc { font-size: 0.72em; color: var(--text2); margin-top: 3px; }
-  .shop-item .buy-btn {
-    margin-top: 6px; padding: 3px 0; width:100%;
-    border: 1px solid var(--green); color: var(--green);
-    background: rgba(78,204,163,0.06);
-    border-radius: 2px; cursor: pointer; font-family: inherit;
-    font-size: 0.65em; transition: 0.12s;
-  }
-  .shop-item .buy-btn:hover { background: rgba(78,204,163,0.12); }
-
-  .hidden { display:none !important; }
+  .hint { font-size: 0.58em; color: var(--text2); opacity: 0.5; }
 </style>
 </head>
 <body>
 
 <div class="game-frame" id="app">
 
-  <!-- top bar always visible -->
+  <!-- top bar -->
   <div class="topbar">
-    <div><span class="day">DAY 14</span> <span class="sep">|</span> Week 3</div>
+    <div><span class="day">DAY 14</span> | Week 3</div>
     <div class="timer">⏱ 03:12 LEFT</div>
     <div class="money">💰 $640 / $2,000</div>
-    <div class="curses">😈 1 CURSE</div>
+    <div class="curses">😈 1 CURSE (Paranoia)</div>
   </div>
 
-  <!-- ═══════════════════════════════ -->
-  <!-- SCREEN 1: FLOOR PLAN MAP       -->
-  <!-- ═══════════════════════════════ -->
-  <div class="main-row" id="screenMap">
+  <!-- ═══════ SCREEN 1: FLOOR PLAN ═══════ -->
+  <div class="screen active" id="screenMap">
     <div class="floor-plan-wrapper">
-      <h2>📡 BUILDING FLOOR PLAN</h2>
-      <div class="floor-plan" id="floorPlan">
-        <!-- Row 1 -->
-        <div class="map-cell"></div>
-        <div class="map-cell"></div>
-        <div class="map-cell"></div>
-        <div class="map-cell"></div>
-        <div class="map-cell"></div>
+      <h2 style="font-size:0.78em;color:var(--text2);text-transform:uppercase;letter-spacing:3px;text-align:center;margin-bottom:4px;">🏚 UNKNOWN BUILDING — UNKNOWN ENTITIES</h2>
 
-        <!-- Row 2 -->
-        <div class="map-cell room" data-room="r1" data-name="Ghost Bathroom" data-entity="👻" onclick="enterRoom(this)">
-          <span class="entity-icon">👻</span><span class="room-label">R1 BATH</span>
-        </div>
-        <div class="map-cell hall"></div>
-        <div class="map-cell room" data-room="r2" data-name="Vampire Bedroom" data-entity="🧛" onclick="enterRoom(this)">
-          <span class="entity-icon">🧛</span><span class="room-label">R2 BED</span>
-        </div>
-        <div class="map-cell hall"></div>
-        <div class="map-cell room" data-room="r3" data-name="Demon Study" data-entity="👹" onclick="enterRoom(this)">
-          <span class="entity-icon">👹</span><span class="room-label">R3 STUDY</span>
-        </div>
+      <!-- floor tabs -->
+      <div class="floor-selector" id="floorTabs">
+        <button class="floor-tab active" onclick="switchFloor('basement')">⬇ Basement</button>
+        <button class="floor-tab" onclick="switchFloor('1')">Floor 1 (Ground)</button>
+        <button class="floor-tab" onclick="switchFloor('2')">Floor 2</button>
+        <button class="floor-tab" onclick="switchFloor('attic')">⬆ Attic</button>
+      </div>
 
-        <!-- Row 3 -->
-        <div class="map-cell hall"></div>
-        <div class="map-cell hall">WEST HALL</div>
-        <div class="map-cell hall">┬</div>
-        <div class="map-cell hall">EAST HALL</div>
-        <div class="map-cell hall"></div>
+      <!-- floor plan container (JS fills the grid based on active floor) -->
+      <div class="floor-plan floor-basement" id="floorPlan">
+        <!-- JS will render cells here -->
+      </div>
 
-        <!-- Row 4: central -->
-        <div class="map-cell room" data-room="r4" data-name="Zombie Kitchen" data-entity="🧟" onclick="enterRoom(this)">
-          <span class="entity-icon">🧟</span><span class="room-label">R4 KITCHEN</span><span class="status-badge">BANISHED ✓</span>
-        </div>
-        <div class="map-cell hall"></div>
-        <div class="map-cell player-room" data-room="player" data-name="Your Room" data-entity="💻" onclick="enterRoom(this)">
-          <span class="entity-icon">💻</span><span class="room-label">YOUR ROOM</span>
-        </div>
-        <div class="map-cell hall"></div>
-        <div class="map-cell room" data-room="r5" data-name="Witch Pantry" data-entity="🧙" onclick="enterRoom(this)">
-          <span class="entity-icon">🧙</span><span class="room-label">R5 PANTRY</span>
-        </div>
-
-        <!-- Row 5 -->
-        <div class="map-cell hall"></div>
-        <div class="map-cell hall">SOUTH HALL</div>
-        <div class="map-cell hall">┴</div>
-        <div class="map-cell hall"></div>
-        <div class="map-cell hall"></div>
-
-        <!-- Row 6 -->
-        <div class="map-cell room" data-room="r6" data-name="Shadow Basement" data-entity="👤" onclick="enterRoom(this)">
-          <span class="entity-icon">👤</span><span class="room-label">R6 BSMNT</span>
-        </div>
-        <div class="map-cell room" data-room="r7" data-name="Possession Cellar" data-entity="👁️" onclick="enterRoom(this)">
-          <span class="entity-icon">👁️</span><span class="room-label">R7 CELLAR</span>
-        </div>
-        <div class="map-cell room" data-room="r8" data-name="Poltergeist Den" data-entity="🌀" onclick="enterRoom(this)">
-          <span class="entity-icon">🌀</span><span class="room-label">R8 DEN</span>
-        </div>
-        <div class="map-cell room" data-room="r9" data-name="Ghost Library" data-entity="👻" onclick="enterRoom(this)">
-          <span class="entity-icon">👻</span><span class="room-label">R9 LIBR</span>
-        </div>
-        <div class="map-cell room" data-room="r10" data-name="Witch Attic" data-entity="🧙" onclick="enterRoom(this)">
-          <span class="entity-icon">🧙</span><span class="room-label">R10 ATTIC</span>
-        </div>
+      <div class="map-legend" id="mapLegend">
+        ⚠ Unknown entities — investigate rooms to discover<br>
+        🔴 Danger accumulates daily in unvisited rooms<br>
+        💻 Research on YOUR ROOM laptop to link clues
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ -->
-  <!-- SCREEN 2: FULL ROOM VIEW        -->
-  <!-- ═══════════════════════════════ -->
-  <div class="room-view" id="screenRoom">
+  <!-- ═══════ SCREEN 2: FULL ROOM VIEW ═══════ -->
+  <div class="screen" id="screenRoom">
     <div class="room-topbar">
-      <h2 id="roomTitle">DEMON'S STUDY</h2>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <div class="entity-badge" id="entityBadge">👹 DEMON</div>
-        <div class="danger-bar">
-          ENTITY THREAT <div class="danger-fill"><div class="fill" id="dangerFill"></div></div>
-        </div>
+      <h2 id="roomTitle">STUDY</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="room-floor-tag" id="roomFloorTag">FLOOR 2</div>
+        <div class="entity-unknown" id="roomEntity">ENTITY: ???</div>
       </div>
     </div>
-    <div class="room-scene" id="roomScene">
-      <div class="room-warning" id="roomWarning">⚠ ENTITY ACTIVE — INVESTIGATE WITH CAUTION</div>
-      <!-- Objects placed by JS -->
+    <div class="danger-row">
+      <span class="danger-label">ROOM DANGER</span>
+      <div class="danger-track"><div class="danger-fill" id="dangerFill"></div></div>
+      <span class="danger-value" id="dangerValue">0%</span>
+    </div>
+    <div class="suspicion-row">
+      <span class="suspicion-label">SUSPICION</span>
+      <div class="suspicion-track"><div class="suspicion-fill" id="suspicionFill"></div></div>
+      <span style="font-size:0.6em;color:var(--warning);min-width:120px;text-align:right;" id="suspicionText">Safe</span>
+    </div>
+    <div class="room-scene" id="roomScene" onclick="sceneClick(event)">
+      <div class="clues-overlay" id="cluesPanel">
+        <h4>📋 CLUES</h4>
+        <div id="cluesList" style="max-height:140px;overflow-y:auto;"><div style="color:var(--text2);font-size:0.9em;">None yet. Inspect objects.</div></div>
+      </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ -->
-  <!-- SCREEN 3: LAPTOP / YOUR ROOM    -->
-  <!-- ═══════════════════════════════ -->
-  <div class="laptop-view" id="screenLaptop">
+  <!-- ═══════ SCREEN 3: LAPTOP ═══════ -->
+  <div class="screen" id="screenLaptop">
     <div class="laptop-topbar">
       <h2>💻 HAUNTED-WIKI.DARKNET — YOUR ROOM</h2>
-      <span class="btn" onclick="showScreen('map')">← BACK TO MAP</span>
+      <button class="btn" onclick="showScreen('map')">← BACK TO MAP</button>
     </div>
     <div class="laptop-screen">
       <div class="laptop-nav">
-        <button class="btn active" id="navWiki" onclick="laptopTab('wiki')">🔍 RESEARCH (WIKI)</button>
+        <button class="btn active" id="navWiki" onclick="laptopTab('wiki')">🔍 RESEARCH</button>
         <button class="btn" id="navShop" onclick="laptopTab('shop')">🛒 SHOP</button>
         <button class="btn" id="navEmail" onclick="laptopTab('email')">📧 EMAILS</button>
       </div>
-      <div class="laptop-content" id="laptopContent">
-        <!-- JS fills -->
-      </div>
+      <div class="laptop-content" id="laptopContent"></div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ -->
-  <!-- RANDOM COMBAT OVERLAY           -->
-  <!-- ═══════════════════════════════ -->
+  <!-- ═══════ COMBAT ═══════ -->
   <div class="combat-overlay" id="combatOverlay">
-    <div class="combat-alert">
-      <h3>⚔ ENTITY BREACHING CONFINEMENT!</h3>
-      <div class="combat-text">
-        The entity sensed your investigation.<br>
-        Its aggression peaked during your scan.<br><br>
-        You failed to spot the anomaly quickly enough.<br>
-        <strong>Combat initiates.</strong>
-      </div>
-      <div class="combat-tell" id="combatTell">
-        Turn 1: Flame gathering<br>
-        → Use Holy Water to counter
-      </div>
-      <div>
-        <button class="btn primary" style="width:120px;margin-right:8px;" onclick="resolveCombat(true)">⚔ ATTACK</button>
-        <button class="btn" style="width:120px;" onclick="resolveCombat(false)">🏃 FLEE (−$20)</button>
+    <div class="combat-panel">
+      <h3>⚔ ENTITY REVEALED — COMBAT!</h3>
+      <div class="hp-bar"><div class="label">YOUR HP</div><div class="hp-fill"><div class="fill" style="width:80%" id="hpFill"></div></div></div>
+      <div class="combat-log" id="combatLog">Danger peaked! Something broke free!</div>
+      <div class="combat-turn" id="combatTurn">ENTITY: ??? — counter with correct item</div>
+      <div class="combat-actions">
+        <button class="btn correct" onclick="combatTurn(true)">Use Item</button>
+        <button class="btn" onclick="combatTurn(false)">Wrong Item</button>
+        <button class="btn danger" onclick="combatFlee()">🏃 FLEE (−$20)</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ -->
-  <!-- BOTTOM BAR                      -->
-  <!-- ═══════════════════════════════ -->
-  <div class="bottombar" id="bottomBar">
-    <!-- dynamic by screen -->
-  </div>
+  <!-- toast -->
+  <div class="penalty-toast" id="penaltyToast"></div>
+
+  <!-- bottom bar -->
+  <div class="bottombar" id="bottomBar"></div>
 
 </div>
 
 <script>
-  const screens = { map: 'screenMap', room: 'screenRoom', laptop: 'screenLaptop' };
-  let currentScreen = 'map';
-  let currentRoom = null;
+  // ═══════════════════════════════════════════════════
+  // ═══ STATE ═══
+  // ═══════════════════════════════════════════════════
+  let screenName = 'map';
+  let activeFloor = 'basement';
+  let dangerLevel = 0;
+  let suspicionLevel = 0;
   let investigationTimer = null;
-  let dangerLevel = 30; // 0-100, increases during investigation
+  let currentRoomId = null;
+  let currentRoomData = null;
+  let globalClues = [];
+  let discoveredEntities = new Map(); // roomId -> entityName
+  let roomsInvestigated = new Set();
+  let consecutiveWrongClicks = 0;
+  let lastClickTime = 0;
+  let hp = 20;
+  let combatActive = false;
 
-  function showScreen(name) {
-    Object.values(screens).forEach(id => document.getElementById(id).style.display = 'none');
-    document.getElementById(screens[name]).style.display = name === 'map' ? 'flex' : 'flex';
-    currentScreen = name;
-    updateBottomBar();
+  // ═══════════════════════════════════════════════════
+  // ═══ ENTITY DEFINITIONS ═══
+  // ═══════════════════════════════════════════════════
+  const entityDefs = {
+    demon:       { label:'DEMON',       symptoms:['4+ candles','chalk marks','inverted symbols','sulfur smell','heat haze'],    banish:['Holy Water','Salt Circle','Crucifix'] },
+    ghost:       { label:'GHOST',       symptoms:['cold spot','floating object','EVP whisper','frost','flickering light'],     banish:['Iron Nails','Salt Line','Sage Bundle'] },
+    vampire:     { label:'VAMPIRE',     symptoms:['no reflection','soil trail','bite marks','garlic wilted','broken seal'],  banish:['Garlic Wreath','Silver Mirror','Silver Stake'] },
+    zombie:      { label:'ZOMBIE',      symptoms:['drag marks','broken chain','green miasma','decay smell','handprints'],      banish:['Door Chain','Blessed Oil','Purification Salt'] },
+    witch:       { label:'WITCH',       symptoms:['hex bags','bone piles','black cat','blood sigils','brew bubbling'],         banish:['Silver Mirror','Fire Kit','Silver Mirror'] },
+    shadow:      { label:'SHADOW',      symptoms:['shifting shadow','flickering bulb','torn catcher','cold wall','whispers'],    banish:['Dream Catcher','Light Talisman','Sage Bundle'] },
+    poltergeist: { label:'POLTERGEIST', symptoms:['upside-down chair','TV static','wall scratches','broken glass','floating'],banish:['Anchor Kit','Salt Line','Anchor Kit'] },
+    possession:  { label:'POSSESSION',  symptoms:['Latin text','levitating furniture','blank stare','water hiss','head rotation'],banish:['Holy Water','Iron Restraints','Holy Water'] }
+  };
+
+  // ═══════════════════════════════════════════════════
+  // ═══ FLOOR PLANS (4 floors, 12 rooms total) ═══
+  // ═══════════════════════════════════════════════════
+  const floorLayouts = {
+    basement: {
+      label: 'BASEMENT',
+      class: 'floor-basement',
+      cells: [
+        // 5 cols x 5 rows
+        ['',     '',         'hall',     '',         ''        ],
+        ['',     'hall',     'hall',     'hall',     ''        ],
+        ['room', 'hall',     'stair-up', 'hall',     'room'    ],
+        ['',     'hall',     'hall',     'hall',     ''        ],
+        ['',     '',         'room',     '',         ''        ]
+      ],
+      rooms: {
+        'r6': { name:'Basement',       ci:2, ri:2 },
+        'r7': { name:'Cellar',         ci:4, ri:2 },
+        'r12':{ name:'Boiler Room',    ci:2, ri:4 },
+      },
+      ambient: 'dark, damp, pipes creaking'
+    },
+    '1': {
+      label: 'FLOOR 1 (GROUND)',
+      class: 'floor-1',
+      cells: [
+        ['room', 'hall',     'hall',     'hall',     'room'    ],
+        ['hall', 'player',   'hall',     'room',     'hall'    ],
+        ['hall', 'hall',     'hall',     'hall',     'hall'    ],
+        ['room', 'hall',     'hall',     'hall',     'room'    ],
+        ['',     'hall',     'stair-down','stair-up','']
+      ],
+      rooms: {
+        'r4': { name:'Kitchen',  ci:0, ri:0 },
+        'r9': { name:'Library',  ci:4, ri:0 },
+        'r5': { name:'Pantry',   ci:3, ri:1 },
+        'r8': { name:'Den',      ci:0, ri:3 },
+      },
+      ambient: 'normal house floors, creaky stairs'
+    },
+    '2': {
+      label: 'FLOOR 2',
+      class: 'floor-2',
+      cells: [
+        ['',     '',         'hall',     '',         ''        ],
+        ['room', 'hall',     'hall',     'hall',     'room'    ],
+        ['hall', 'hall',     'hall',     'hall',     'hall'    ],
+        ['room', 'hall',     'stair-down','hall',    'room'    ],
+        ['',     '',         '',         '',         ''        ]
+      ],
+      rooms: {
+        'r3': { name:'Study',    ci:0, ri:1 },
+        'r1': { name:'Bathroom', ci:4, ri:1 },
+        'r2': { name:'Bedroom',  ci:0, ri:3 },
+        'r11':{ name:'Guest Room',ci:4, ri:3 },
+      },
+      ambient: 'bedroom hallway, muffled sounds'
+    },
+    attic: {
+      label: 'ATTIC',
+      class: 'floor-attic',
+      cells: [
+        ['',     '',         'room',     '',         ''        ],
+        ['',     'hall',     'hall',     'hall',     ''        ],
+        ['',     'hall',     'stair-down','hall',    ''        ],
+        ['',     'hall',     'hall',     'hall',     ''        ],
+        ['',     '',         'room',     '',         ''        ]
+      ],
+      rooms: {
+        'r10': { name:'Attic Storage', ci:2, ri:0 },
+        'r13': { name:'Crawlspace',    ci:2, ri:4 },
+      },
+      ambient: 'dusty, cramped, hot in summer'
+    }
+  };
+
+  // ═══════════════════════════════════════════════════
+  // ═══ ROOM OBJECTS (distributed across floors) ═══
+  // ═══════════════════════════════════════════════════
+  const roomObjects = {
+    // BASEMENT rooms
+    'r6': { // Basement — primary Ghost room
+      name: 'Basement',
+      entity: 'ghost',
+      objects: [
+        {x:35, y:55, w:80, h:70, anomaly:true, text:'MIRROR\nFROSTED', clues:['cold spot','frost']},
+        {x:180, y:140, w:110, h:90, anomaly:true, text:'FLOOR\nCOLD SPOT', clues:['cold spot']},
+        {x:400, y:45, w:60, h:80, anomaly:false, text:'OLD BOXES\nstored'},
+        {x:320, y:155, w:70, h:60, anomaly:true, text:'WALL\nEVP WHISPER', clues:['EVP whisper']},
+        {x:490, y:105, w:60, h:50, anomaly:false, text:'FURNACE\noff'},
+        {x:540, y:210, w:70, h:55, anomaly:true, text:'LIGHT\nFLICKERING', clues:['flickering light']},
+      ]
+    },
+    'r7': { // Cellar — ALSO Ghost clues (cross-room)
+      name: 'Cellar',
+      entity: 'ghost',
+      objects: [
+        {x:30, y:50, w:78, h:66, anomaly:true, text:'CORNER\nFLOATING DUST', clues:['floating object']},
+        {x:170, y:135, w:108, h:86, anomaly:false, text:'WINE RACKS\nsecure'},
+        {x:390, y:40, w:58, h:76, anomaly:true, text:'VENT\nCOLD DRAFT', clues:['cold spot']},
+        {x:310, y:150, w:68, h:58, anomaly:false, text:'WALL\nclean'},
+        {x:470, y:95, w:56, h:48, anomaly:false, text:'TOOLBOX\nlocked'},
+        {x:510, y:195, w:66, h:52, anomaly:true, text:'FLOOR\nHANDPRINTS', clues:['handprints']},
+      ]
+    },
+    'r12': { // Boiler Room — Zombie room
+      name: 'Boiler Room',
+      entity: 'zombie',
+      objects: [
+        {x:28, y:46, w:76, h:66, anomaly:true, text:'CHAIN\nBROKEN', clues:['broken chain']},
+        {x:168, y:138, w:106, h:84, anomaly:true, text:'FLOOR\nDRAG MARKS', clues:['drag marks']},
+        {x:388, y:38, w:56, h:74, anomaly:true, text:'BOILER\nGREEN MIST', clues:['green miasma']},
+        {x:308, y:148, w:66, h:56, anomaly:false, text:'WALL\nclean'},
+        {x:468, y:93, w:54, h:46, anomaly:true, text:'PIPES\nDECAY SMELL', clues:['decay smell']},
+        {x:508, y:193, w:64, h:50, anomaly:false, text:'VALVE\noff'},
+      ]
+    },
+    // FLOOR 1 rooms
+    'r4': { // Kitchen — Cross-room Demon clues
+      name: 'Kitchen',
+      entity: 'demon',
+      objects: [
+        {x:30, y:50, w:78, h:66, anomaly:false, text:'CABINET\nclosed'},
+        {x:170, y:135, w:108, h:86, anomaly:true, text:'OVEN\nHEAT HAZE', clues:['heat haze']},
+        {x:390, y:40, w:58, h:76, anomaly:true, text:'WINDOW\nSULFURIC AIR', clues:['sulfur smell']},
+        {x:310, y:150, w:68, h:58, anomaly:true, text:'FLOOR\nCHALK CIRCLE', clues:['chalk marks']},
+        {x:470, y:95, w:56, h:48, anomaly:false, text:'SINK\nclean'},
+        {x:510, y:195, w:66, h:52, anomaly:false, text:'TABLE\nset'},
+      ]
+    },
+    'r5': { // Pantry — Witch room
+      name: 'Pantry',
+      entity: 'witch',
+      objects: [
+        {x:28, y:46, w:76, h:66, anomaly:true, text:'SHELVES\nHEX BAGS', clues:['hex bags']},
+        {x:168, y:138, w:106, h:84, anomaly:true, text:'FLOOR\nBONE PILE', clues:['bone piles']},
+        {x:388, y:38, w:56, h:74, anomaly:true, text:'WINDOW\nBLACK CAT', clues:['black cat']},
+        {x:308, y:148, w:66, h:56, anomaly:false, text:'WALL\nclean'},
+        {x:468, y:93, w:54, h:46, anomaly:false, text:'JARS\nsealed'},
+        {x:508, y:193, w:64, h:50, anomaly:true, text:'CAULDRON\nBREWING', clues:['brew bubbling']},
+      ]
+    },
+    'r8': { // Den — Poltergeist room
+      name: 'Den',
+      entity: 'poltergeist',
+      objects: [
+        {x:30, y:48, w:80, h:68, anomaly:true, text:'CHAIR\nUPSIDE DOWN', clues:['upside-down chair']},
+        {x:170, y:140, w:110, h:92, anomaly:true, text:'TV\nSTATIC', clues:['TV static']},
+        {x:400, y:42, w:62, h:78, anomaly:true, text:'WALL\nSCRATCHES', clues:['wall scratches']},
+        {x:318, y:158, w:70, h:60, anomaly:false, text:'COUCH\nnormal'},
+        {x:478, y:98, w:58, h:48, anomaly:true, text:'VASE\nFLOATING', clues:['floating']},
+        {x:520, y:200, w:70, h:58, anomaly:true, text:'WINDOW\nBROKEN GLASS', clues:['broken glass']},
+      ]
+    },
+    'r9': { // Library — Possession room
+      name: 'Library',
+      entity: 'possession',
+      objects: [
+        {x:30, y:50, w:78, h:66, anomaly:true, text:'BOOKS\nFLOATING', clues:['levitating furniture']},
+        {x:170, y:135, w:108, h:86, anomaly:true, text:'WALL\nLATIN TEXT', clues:['Latin text']},
+        {x:390, y:40, w:58, h:76, anomaly:false, text:'DESK\nnormal'},
+        {x:310, y:150, w:68, h:58, anomaly:true, text:'BUST\nBLANK STARE', clues:['blank stare']},
+        {x:470, y:95, w:56, h:48, anomaly:true, text:'HOLY WATER\nHISSING', clues:['water hiss']},
+        {x:510, y:195, w:66, h:52, anomaly:false, text:'SHELF\ntidy'},
+      ]
+    },
+    // FLOOR 2 rooms
+    'r3': { // Study — PRIMARY Demon room
+      name: 'Study',
+      entity: 'demon',
+      objects: [
+        {x:30, y:48, w:80, h:68, anomaly:true, text:'CANDLES\n4 in arc', clues:['4+ candles']},
+        {x:170, y:140, w:110, h:92, anomaly:true, text:'FLOOR\nCHALK MARKS', clues:['chalk marks']},
+        {x:400, y:42, w:62, h:78, anomaly:false, text:'✝\nCROSS intact'},
+        {x:318, y:158, w:70, h:60, anomaly:true, text:'WALL\nPENTAGRAM', clues:['inverted symbols']},
+        {x:478, y:98, w:58, h:48, anomaly:false, text:'🌡\n73°F'},
+        {x:522, y:200, w:70, h:58, anomaly:true, text:'VENT\nSULFUR', clues:['sulfur smell']},
+        {x:630, y:60, w:100, h:120, anomaly:false, text:'BOOKSHELF'},
+      ]
+    },
+    'r1': { // Bathroom — cross-room clues for multiple entities
+      name: 'Bathroom',
+      entity: 'vampire',
+      objects: [
+        {x:35, y:55, w:80, h:70, anomaly:true, text:'MIRROR\nNO REFLECTION', clues:['no reflection']},
+        {x:180, y:140, w:110, h:90, anomaly:true, text:'FLOOR\nSOIL TRAIL', clues:['soil trail']},
+        {x:400, y:45, w:60, h:80, anomaly:false, text:'🪥\nTOOTHBRUSH'},
+        {x:320, y:155, w:70, h:60, anomaly:true, text:'TOWEL\nBITE MARKS', clues:['bite marks']},
+        {x:490, y:105, w:60, h:50, anomaly:true, text:'GARLIC\nWILTED', clues:['garlic wilted']},
+        {x:540, y:210, w:70, h:55, anomaly:true, text:'WINDOW\nSEAL BROKEN', clues:['broken seal']},
+      ]
+    },
+    'r2': { // Bedroom — Shadow room
+      name: 'Bedroom',
+      entity: 'shadow',
+      objects: [
+        {x:30, y:50, w:80, h:70, anomaly:true, text:'CORNER\nSHIFTING SHADOW', clues:['shifting shadow']},
+        {x:180, y:140, w:110, h:90, anomaly:true, text:'LAMP\nFLICKERING BULB', clues:['flickering bulb']},
+        {x:400, y:40, w:60, h:80, anomaly:true, text:'DREAM CATCHER\nTORN', clues:['torn catcher']},
+        {x:320, y:160, w:70, h:60, anomaly:false, text:'BED\nmade'},
+        {x:490, y:100, w:60, h:50, anomaly:true, text:'WALL\nCOLD PATCH', clues:['cold wall']},
+        {x:520, y:200, w:70, h:55, anomaly:true, text:'CLOSET\nWHISPERS', clues:['whispers']},
+      ]
+    },
+    'r11': { // Guest Room — also Shadow clues (cross-room)
+      name: 'Guest Room',
+      entity: 'shadow',
+      objects: [
+        {x:28, y:46, w:76, h:66, anomaly:true, text:'MIRROR\nSHADOW MOVING', clues:['shifting shadow']},
+        {x:168, y:138, w:106, h:84, anomaly:false, text:'FLOOR\nclean'},
+        {x:388, y:38, w:56, h:74, anomaly:true, text:'LIGHT\nFLICKERING', clues:['flickering bulb']},
+        {x:308, y:148, w:66, h:56, anomaly:false, text:'WALL\nnormal'},
+        {x:468, y:93, w:54, h:46, anomaly:true, text:'UNDER BED\nCOLD DRAFT', clues:['cold wall']},
+        {x:508, y:193, w:64, h:50, anomaly:false, text:'LAMP\noff'},
+      ]
+    },
+    // ATTIC rooms
+    'r10': { // Attic Storage — Vampire cross-room clues
+      name: 'Attic Storage',
+      entity: 'vampire',
+      objects: [
+        {x:30, y:48, w:80, h:68, anomaly:true, text:'CRATE\nBITE MARKS', clues:['bite marks']},
+        {x:170, y:140, w:110, h:92, anomaly:true, text:'FLOOR\nSOIL TRAIL', clues:['soil trail']},
+        {x:400, y:42, w:62, h:78, anomaly:false, text:'WINDOW\nsealed'},
+        {x:320, y:160, w:70, h:60, anomaly:true, text:'MIRROR\nNO REFLECTION', clues:['no reflection']},
+        {x:480, y:100, w:58, h:50, anomaly:false, text:'BOXES\nsealed'},
+        {x:520, y:200, w:70, h:58, anomaly:true, text:'RAFTERS\nGARLIC DRIED', clues:['garlic wilted']},
+      ]
+    },
+    'r13': { // Crawlspace — Witch cross-room clues
+      name: 'Crawlspace',
+      entity: 'witch',
+      objects: [
+        {x:28, y:46, w:76, h:66, anomaly:true, text:'POUCHES\nHEX BAGS', clues:['hex bags']},
+        {x:168, y:138, w:106, h:84, anomaly:false, text:'FLOOR\nclean'},
+        {x:388, y:38, w:56, h:74, anomaly:true, text:'WALL\nBLOOD SIGIL', clues:['blood sigils']},
+        {x:308, y:148, w:66, h:56, anomaly:false, text:'INSULATION\nstandard'},
+        {x:468, y:93, w:54, h:46, anomaly:true, text:'CORNER\nBONE FRAGMENTS', clues:['bone piles']},
+        {x:508, y:193, w:64, h:50, anomaly:true, text:'DUCT\nMEOW ECHO', clues:['black cat']},
+      ]
+    },
+  };
+
+  // ═══════════════════════════════════════════════════
+  // ═══ RENDER FLOOR PLAN ═══
+  // ═══════════════════════════════════════════════════
+  function switchFloor(floorKey) {
+    activeFloor = floorKey;
+    // Update tabs
+    document.querySelectorAll('.floor-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderFloor();
   }
 
-  function enterRoom(el) {
-    const roomId = el.dataset.room;
-    const roomName = el.dataset.name;
-    const entity = el.dataset.entity;
-    currentRoom = roomId;
+  function renderFloor() {
+    const layout = floorLayouts[activeFloor];
+    const container = document.getElementById('floorPlan');
+    container.className = 'floor-plan ' + layout.class;
+    container.innerHTML = '';
 
-    if (roomId === 'player') {
-      showScreen('laptop');
-      laptopTab('wiki');
-      return;
+    // Add floor label
+    const label = document.createElement('div');
+    label.className = 'floor-label';
+    label.textContent = layout.label;
+    container.appendChild(label);
+
+    // Render grid cells
+    layout.cells.forEach((row, ri) => {
+      row.forEach((type, ci) => {
+        const cell = document.createElement('div');
+        cell.className = 'map-cell ' + type;
+        
+        if (type === 'stair-up') {
+          cell.textContent = '⬆ STAIRS';
+          cell.onclick = () => { const next = getNextFloor(1); switchFloorButton(next); };
+        } else if (type === 'stair-down') {
+          cell.textContent = '⬇ STAIRS';
+          cell.onclick = () => { const next = getNextFloor(-1); switchFloorButton(next); };
+        } else if (type === 'room') {
+          // Find room at this position
+          const roomEntry = Object.entries(layout.rooms).find(([id, r]) => r.ci === ci && r.ri === ri);
+          if (roomEntry) {
+            const [roomId, room] = roomEntry;
+            const roomData = roomObjects[roomId];
+            const isEnraged = roomId === 'r4'; // demo
+            const isBanished = false;
+            if (isEnraged) cell.classList.add('enraged');
+            if (isBanished) cell.classList.add('banished');
+            
+            cell.setAttribute('data-room', roomId);
+            cell.setAttribute('data-name', room.name);
+            cell.innerHTML = `
+              <span class="room-label">${roomId.toUpperCase()}<br>${room.name.toUpperCase()}</span>
+              <div class="danger-mini ${isEnraged ? 'critical fill' : ''}"></div>
+            `;
+            cell.onclick = () => enterRoom(roomId);
+          } else {
+            cell.className = 'map-cell hall';
+          }
+        } else if (type === 'player') {
+          cell.innerHTML = `<span class="room-label">💻<br>YOUR ROOM</span>`;
+          cell.onclick = () => showScreen('laptop');
+        }
+        
+        container.appendChild(cell);
+      });
+    });
+  }
+
+  function getNextFloor(dir) {
+    const order = ['basement', '1', '2', 'attic'];
+    const idx = order.indexOf(activeFloor);
+    return order[Math.max(0, Math.min(order.length - 1, idx + dir))];
+  }
+  function switchFloorButton(floorKey) {
+    activeFloor = floorKey;
+    document.querySelectorAll('.floor-tab').forEach(t => {
+      t.classList.toggle('active', 
+        (floorKey==='basement' && t.textContent.includes('Basement')) ||
+        (floorKey==='1' && t.textContent.includes('Floor 1')) ||
+        (floorKey==='2' && t.textContent.includes('Floor 2')) ||
+        (floorKey==='attic' && t.textContent.includes('Attic'))
+      );
+    });
+    renderFloor();
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ═══ SCREEN / FLOW ═══
+  // ═══════════════════════════════════════════════════
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+    screenName = name;
+    updateBottomBar();
+    if (name !== 'room') stopInvestigation();
+  }
+
+  function updateBottomBar() {
+    const bar = document.getElementById('bottomBar');
+    if (screenName === 'map') {
+      bar.innerHTML = `
+        <button class="btn green" onclick="showScreen('laptop')">💻 YOUR ROOM (LAPTOP)</button>
+        <div class="spacer"></div>
+        <span class="hint">${floorLayouts[activeFloor].label}: ${floorLayouts[activeFloor].ambient}.</span>
+        <button class="btn primary" onclick="alert('Day ended.')">🌙 END DAY</button>
+      `;
+    } else if (screenName === 'room') {
+      bar.innerHTML = `
+        <button class="btn" onclick="leaveRoom()">← BACK TO MAP</button>
+        <div class="spacer"></div>
+        <span class="hint">${currentRoomData ? currentRoomData.name : ''}: find subtle anomalies. Wrong clicks raise suspicion & danger.</span>
+      `;
+    } else if (screenName === 'laptop') {
+      bar.innerHTML = `
+        <button class="btn" onclick="showScreen('map')">← BACK TO MAP</button>
+        <div class="spacer"></div>
+        <span class="hint">Cross-reference clues across rooms to identify entities. Buy correct items.</span>
+        <button class="btn primary" onclick="alert('Day ended.')">🌙 END DAY</button>
+      `;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ═══ ROOM INVESTIGATION ═══
+  // ═══════════════════════════════════════════════════
+  function enterRoom(roomId) {
+    currentRoomId = roomId;
+    currentRoomData = roomObjects[roomId];
+    if (!currentRoomData) return;
+
+    const entityKnown = discoveredEntities.has(roomId);
+    document.getElementById('roomTitle').textContent = currentRoomData.name.toUpperCase();
+    document.getElementById('roomFloorTag').textContent = floorLayouts[activeFloor].label;
+    
+    const entityEl = document.getElementById('roomEntity');
+    if (entityKnown) {
+      const ename = entityDefs[discoveredEntities.get(roomId)].label;
+      entityEl.className = 'entity-known';
+      entityEl.innerHTML = `ENTITY: ${ename} <span style="color:var(--gold);">★ IDENTIFIED</span>`;
+    } else {
+      entityEl.className = 'entity-unknown';
+      entityEl.innerHTML = 'ENTITY: ??? — investigate to identify';
     }
 
-    document.getElementById('roomTitle').textContent = roomName.toUpperCase();
-    document.getElementById('entityBadge').textContent = entity + ' ' + roomName.split(' ')[0].toUpperCase();
-    dangerLevel = Math.floor(Math.random() * 40) + 25; // random danger from previous days
+    // Danger varies by entity type and floor
+    dangerLevel = roomId === 'r4' ? 55 : (roomId === 'r3' ? 20 : Math.floor(Math.random()*15)+8);
+    suspicionLevel = 0;
+    consecutiveWrongClicks = 0;
     updateDanger();
+    updateSuspicion();
+    renderRoomObjects();
     showScreen('room');
     startInvestigation();
   }
 
-  function updateDanger() {
-    const fill = document.getElementById('dangerFill');
-    fill.style.width = dangerLevel + '%';
-    fill.classList.toggle('critical', dangerLevel > 70);
-    const warn = document.getElementById('roomWarning');
-    warn.classList.toggle('visible', dangerLevel > 60);
+  function renderRoomObjects() {
+    const scene = document.getElementById('roomScene');
+    const panel = scene.querySelector('.clues-overlay');
+    scene.innerHTML = '';
+    if (panel) scene.appendChild(panel);
+
+    currentRoomData.objects.forEach((obj, i) => {
+      const el = document.createElement('div');
+      el.className = 'room-obj ' + (obj.anomaly ? 'anomaly' : 'normal');
+      el.style.cssText = `left:${obj.x}px;top:${obj.y}px;width:${obj.w}px;height:${obj.h}px;`;
+      el.innerHTML = `<span style="font-size:0.5em">${obj.text}</span>`;
+      el.onclick = (e) => { e.stopPropagation(); inspectObject(obj, e, el); };
+      scene.appendChild(el);
+    });
   }
 
   function startInvestigation() {
-    // Danger rises over time as player investigates
+    if (investigationTimer) clearInterval(investigationTimer);
     investigationTimer = setInterval(() => {
-      dangerLevel += 2;
+      let rise = 1.0;
+      // Floor modifiers
+      if (activeFloor === 'basement') rise *= 1.2; // basement = faster danger
+      if (activeFloor === 'attic') rise *= 1.1;    // attic = slight boost
+      // Curses
+      if (document.querySelector('.topbar .curses').textContent.includes('Paranoia')) rise *= 1.3;
+      if (document.querySelector('.topbar .curses').textContent.includes('Fatigue')) rise *= 1.3;
+      dangerLevel += rise;
       updateDanger();
-      if (dangerLevel >= 90) {
-        triggerCombat();
+      if (dangerLevel >= 100 && !combatActive) triggerCombat();
+    }, 1000);
+  }
+  function stopInvestigation() { if (investigationTimer) { clearInterval(investigationTimer); investigationTimer = null; } }
+
+  function updateDanger() {
+    dangerLevel = Math.min(100, dangerLevel);
+    const fill = document.getElementById('dangerFill');
+    fill.style.width = dangerLevel + '%';
+    fill.classList.remove('critical', 'warning');
+    if (dangerLevel >= 70) fill.classList.add('critical');
+    else if (dangerLevel >= 40) fill.classList.add('warning');
+    document.getElementById('dangerValue').textContent = Math.floor(dangerLevel) + '%';
+  }
+  function updateSuspicion() {
+    const fill = document.getElementById('suspicionFill');
+    fill.style.width = suspicionLevel + '%';
+    const txt = document.getElementById('suspicionText');
+    if (suspicionLevel >= 80) txt.textContent = 'CRITICAL — Entity watching!';
+    else if (suspicionLevel >= 50) txt.textContent = 'High — Tread carefully';
+    else if (suspicionLevel >= 25) txt.textContent = 'Rising';
+    else txt.textContent = 'Safe';
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ═══ INSPECTION WITH PENALTIES ═══
+  // ═══════════════════════════════════════════════════
+  function inspectObject(obj, event, el) {
+    const now = Date.now();
+    const clickDelay = now - lastClickTime;
+    lastClickTime = now;
+
+    // PENALTY 1: Click spam
+    if (clickDelay < 400) {
+      showFloat(el, 'TOO FAST! +10 suspicion — entity notices', false);
+      suspicionLevel += 10; dangerLevel += 5;
+      updateSuspicion(); updateDanger();
+      checkSuspicionPenalty();
+      return;
+    }
+
+    if (obj.anomaly) {
+      if (obj.found) return;
+      obj.found = true;
+      el.classList.add('found');
+      if (obj.clues) {
+        obj.clues.forEach(clueText => {
+          if (!globalClues.find(c => c.text === clueText && c.room === currentRoomData.name)) {
+            globalClues.push({text: clueText, room: currentRoomData.name, roomId: currentRoomId, floor: activeFloor});
+          }
+        });
+        updateCluesPanel();
       }
-    }, 1200);
-    // Build room objects dynamically
-    renderRoomObjects();
-  }
-
-  function triggerCombat() {
-    clearInterval(investigationTimer);
-    document.getElementById('combatOverlay').classList.add('active');
-  }
-
-  function resolveCombat(won) {
-    document.getElementById('combatOverlay').classList.remove('active');
-    if (won) {
-      alert('Combat won! Entity banished. $100 bonus.');
-      showScreen('map');
+      dangerLevel -= 15; suspicionLevel = Math.max(0, suspicionLevel - 5);
+      consecutiveWrongClicks = 0;
+      updateDanger(); updateSuspicion();
+      showFloat(el, 'CLUE FOUND! −15 danger', true);
     } else {
-      alert('Fled! −$20. Entity enrages.');
-      backToMap();
+      dangerLevel += 6; suspicionLevel += 8; consecutiveWrongClicks++;
+      updateDanger(); updateSuspicion();
+      showFloat(el, 'Nothing… +6 danger +8 suspicion', false);
+
+      // PENALTY 2: Consecutive miss streak
+      if (consecutiveWrongClicks >= 3) {
+        showPenalty('PARANOIA TRIGGERED! Seeing things that aren\'t there. → Paranoia curse!');
+        applyCurse('Paranoia');
+        consecutiveWrongClicks = 0;
+      }
+
+      // PENALTY 3: Same object spam
+      if (!el.clickCount) el.clickCount = 0;
+      el.clickCount++;
+      if (el.clickCount >= 3) {
+        showPenalty('ENTITY ANNOYED! +20 danger.');
+        dangerLevel += 20; updateDanger();
+      }
+    }
+    checkSuspicionPenalty();
+  }
+
+  function checkSuspicionPenalty() {
+    if (suspicionLevel >= 100 && !combatActive) { triggerCombat(); return; }
+    if (suspicionLevel >= 60) {
+      document.getElementById('roomScene').style.animation = 'shake 0.3s ease-in-out';
+      setTimeout(() => document.getElementById('roomScene').style.animation = '', 300);
     }
   }
+  function sceneClick(event) {
+    if (event.target !== event.currentTarget) return;
+    dangerLevel += 1; updateDanger();
+  }
 
-  function backToMap() {
-    clearInterval(investigationTimer);
+  function showFloat(targetEl, text, isGood) {
+    const rect = targetEl.getBoundingClientRect();
+    const scene = document.getElementById('roomScene').getBoundingClientRect();
+    const ft = document.createElement('div');
+    ft.className = 'float-text ' + (isGood ? 'good' : 'bad');
+    ft.textContent = text;
+    ft.style.left = (rect.left - scene.left + rect.width/2 - 60) + 'px';
+    ft.style.top = (rect.top - scene.top - 20) + 'px';
+    ft.style.zIndex = 50;
+    document.getElementById('roomScene').appendChild(ft);
+    setTimeout(() => ft.remove(), 800);
+  }
+  function showPenalty(text) {
+    const toast = document.getElementById('penaltyToast');
+    toast.textContent = text; toast.classList.add('active');
+    setTimeout(() => toast.classList.remove('active'), 3000);
+  }
+  function applyCurse(name) {
+    const cursesEl = document.querySelector('.topbar .curses');
+    let current = cursesEl.textContent;
+    if (!current.includes(name)) {
+      cursesEl.textContent = current.replace('😈 ', '') + ' + ' + name;
+      cursesEl.style.color = 'var(--danger)';
+    }
+  }
+  function updateCluesPanel() {
+    const list = document.getElementById('cluesList');
+    if (globalClues.length === 0) {
+      list.innerHTML = '<div style="color:var(--text2);font-size:0.9em;">None yet. Inspect objects.</div>';
+      return;
+    }
+    list.innerHTML = globalClues.map(c =>
+      `<div class="clue-entry"><span class="src">${c.room}:</span> ${c.text}</div>`
+    ).join('');
+  }
+
+  function leaveRoom() {
+    stopInvestigation();
+    roomsInvestigated.add(currentRoomId);
+    if (dangerLevel >= 70) {
+      const cell = document.querySelector(`.floor-plan .room[data-room="${currentRoomId}"]`);
+      if (cell) cell.classList.add('enraged');
+      showPenalty('High danger escape! Entity ENRAGED.');
+    }
     showScreen('map');
   }
 
-  function renderRoomObjects() {
-    const container = document.getElementById('roomScene');
-    // clear old, keep warning div
-    const warning = container.querySelector('.room-warning');
-    container.innerHTML = '';
-    if (warning) container.appendChild(warning);
-
-    const objects = [
-      { x: 30, y: 50, w: 80, h: 70, type: 'demon anomaly', text: 'DESK<br>Candles x4', anomaly: true },
-      { x: 180, y: 140, w: 110, h: 90, type: 'demon anomaly', text: 'FLOOR<br>Chalk marks', anomaly: true },
-      { x: 400, y: 40, w: 60, h: 80, type: 'demon', text: '✝<br>CROSS', anomaly: false },
-      { x: 320, y: 160, w: 70, h: 60, type: 'demon anomaly', text: 'WALL<br>Pentagram', anomaly: true },
-      { x: 480, y: 100, w: 60, h: 50, type: 'demon', text: '🌡<br>73°F', anomaly: false },
-      { x: 520, y: 200, w: 70, h: 55, type: 'demon anomaly', text: 'VENT<br>Sulfur', anomaly: true },
-      { x: 620, y: 60, w: 100, h: 120, type: 'demon', text: 'BOOKSHELF', anomaly: false },
-      { x: 680, y: 210, w: 80, h: 70, type: 'demon', text: 'WINDOW<br>Sealed', anomaly: false },
-    ];
-
-    objects.forEach((obj, i) => {
-      const el = document.createElement('div');
-      el.className = 'room-obj ' + (obj.anomaly ? 'anomaly' : 'demon');
-      el.style.cssText = `left:${obj.x}px; top:${obj.y}px; width:${obj.w}px; height:${obj.h}px;`;
-      el.innerHTML = '<span style="font-size:0.55em;">' + obj.text + '</span>';
-      el.onclick = () => inspectObject(obj, i);
-      container.appendChild(el);
-    });
-  }
-
-  function inspectObject(obj, index) {
-    // Clicking anomaly reduces danger if correctly identified
-    if (obj.anomaly) {
-      dangerLevel = Math.max(0, dangerLevel - 25);
-      updateDanger();
-      // visual feedback
-      alert((obj.text.split('<br>')[0]) + ' inspected. Anomaly confirmed! Danger dropped.');
+  // ═══════════════════════════════════════════════════
+  // ═══ COMBAT ═══
+  // ═══════════════════════════════════════════════════
+  function triggerCombat() {
+    combatActive = true; stopInvestigation();
+    document.getElementById('combatOverlay').classList.add('active');
+    const actualEntity = guessEntityFromClues();
+    if (actualEntity) {
+      discoveredEntities.set(currentRoomId, actualEntity);
+      const label = entityDefs[actualEntity].label;
+      document.getElementById('combatLog').textContent = `Entity revealed itself: ${label}!`;
+      document.getElementById('combatTurn').textContent = `Turn 1: ${label} attacks — use correct item`;
     } else {
-      // normal object, no effect
+      document.getElementById('combatLog').textContent = 'UNKNOWN ENTITY! No clue match. Blind combat.';
+      document.getElementById('combatTurn').textContent = '??? — Good luck…';
     }
   }
-
-  // ══ BOTTOM BAR ══
-  function updateBottomBar() {
-    const bar = document.getElementById('bottomBar');
-    bar.innerHTML = '';
-    if (currentScreen === 'map') {
-      bar.innerHTML = `
-        <button class="btn green" onclick="showScreen('laptop')">💻 YOUR ROOM (LAPTOP)</button>
-        <div class="spacer"></div>
-        <span class="context-note">Click any room to investigate. Click YOUR ROOM for laptop.</span>
-      `;
-    } else if (currentScreen === 'room') {
-      bar.innerHTML = `
-        <button class="btn" onclick="backToMap()">← BACK TO MAP</button>
-        <div class="spacer"></div>
-        <span class="context-note">Click objects to inspect anomalies. Watch danger bar!</span>
-      `;
-    } else if (currentScreen === 'laptop') {
-      bar.innerHTML = `
-        <button class="btn" onclick="showScreen('map')">← BACK TO MAP</button>
-        <div class="spacer"></div>
-        <span class="context-note">Research entities, buy items, read landlord emails.</span>
-      `;
+  function guessEntityFromClues() {
+    const roomClues = globalClues.filter(c => c.roomId === currentRoomId).map(c => c.text);
+    let bestMatch = null, bestScore = 0;
+    for (const [ename, data] of Object.entries(entityDefs)) {
+      let score = 0;
+      data.symptoms.forEach(sym => {
+        if (roomClues.some(c => c.includes(sym) || sym.includes(c))) score++;
+      });
+      if (score > bestScore) { bestScore = score; bestMatch = ename; }
+    }
+    return bestMatch;
+  }
+  function combatTurn(correct) {
+    const log = document.getElementById('combatLog');
+    if (correct) { log.textContent = '✓ Countered! Ritual advances. 1/4.'; setTimeout(() => resolveCombat(true), 800); }
+    else { hp -= 5; document.getElementById('hpFill').style.width = (hp/20*100) + '%';
+      document.getElementById('hpFill').style.background = 'var(--danger)';
+      log.textContent = '❌ WRONG! −5 HP.';
+      if (hp <= 0) setTimeout(() => { alert('GAME OVER.'); location.reload(); }, 500);
     }
   }
+  function combatFlee() { hp -= 3; document.getElementById('hpFill').style.width = (hp/20*100) + '%'; resolveCombat(false); }
+  function resolveCombat(won) {
+    combatActive = false;
+    document.getElementById('combatOverlay').classList.remove('active');
+    if (won) {
+      alert('✓ BANISHED! Room safe. +$100.');
+      const cell = document.querySelector(`.floor-plan .room[data-room="${currentRoomId}"]`);
+      if (cell) cell.classList.add('banished');
+    } else {
+      alert('🏃 FLED! −$20, took damage. Entity stronger.');
+    }
+    showScreen('map');
+  }
 
-  // ══ LAPTOP ══
+  // ═══════════════════════════════════════════════════
+  // ═══ LAPTOP ═══
+  // ═══════════════════════════════════════════════════
   function laptopTab(tab) {
-    ['navWiki','navShop','navEmail'].forEach(id => {
-      document.getElementById(id).classList.remove('active');
-    });
+    ['navWiki','navShop','navEmail'].forEach(id => document.getElementById(id).classList.remove('active'));
     document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-
     const content = document.getElementById('laptopContent');
     if (tab === 'wiki') {
-      content.innerHTML = `
-        <p style="margin-bottom:10px;color:var(--text2);font-size:0.78em;">
-          Cross-reference observed clues against entity profiles below.
-        </p>
-        <div class="wiki-entry" onclick="alert('DEMON profile opened')">
-          <div class="entity-icon">👹</div>
-          <div class="entity-info">
-            <div class="entity-name">DEMON — Confidence: HIGH</div>
-            <div class="entity-desc">
-              4+ candles • Chalk marks • Sulfur mist • Inverted symbols<br>
-              <span style="color:var(--gold)">
-              Banish: Holy Water → Salt Circle → Crucifix → EXORCISM</span>
+      let html = `<p style="margin-bottom:10px;color:var(--text2);font-size:0.75em;">Clues gathered: ${globalClues.length}. Cross-reference symptoms across ALL rooms to identify entities.</p>`;
+      html += `<p style="margin-bottom:8px;color:var(--gold);font-size:0.72em;">💡 Tip: Same symptoms in different rooms = same entity haunting multiple rooms!</p>`;
+      for (const [ename, data] of Object.entries(entityDefs)) {
+        const matched = data.symptoms.filter(s => globalClues.some(c => c.text.includes(s) || s.includes(c.text)));
+        const totalMatches = matched.length;
+        const isRevealed = totalMatches >= 2;
+        const roomsWithClues = [...new Set(globalClues.filter(c => data.symptoms.some(s => c.text.includes(s) || s.includes(c.text))).map(c => c.room))];
+        
+        html += `
+          <div class="wiki-card" style="${totalMatches === 0 ? 'opacity:0.35;cursor:not-allowed;' : ''}">
+            <span class="emoji">${isRevealed ? '👁️' : '❓'}</span><div>
+              <div class="title">${data.label}${totalMatches > 0 ? ` — ${totalMatches}/${data.symptoms.length} clues` : ' [NO DATA]'}</div>
+              <div class="desc">${totalMatches > 0 ? `Found in: ${roomsWithClues.join(', ') || 'various rooms'}<br>Matched: ${matched.join(', ')}` : 'Investigate more rooms to find symptoms.'}
+                ${isRevealed ? `<br><span style="color:var(--gold)">Banish: ${data.banish.join(' → ')}</span>` : ''}
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="wiki-entry" onclick="alert('WITCH profile opened')">
-          <div class="entity-icon">🧙</div>
-          <div class="entity-info">
-            <div class="entity-name">WITCH — Confidence: LOW</div>
-            <div class="entity-desc">
-              Candles present • Hex bags • Bone arrangements • Familiar<br>
-              <span style="color:var(--gold)">
-              Banish: Silver Mirror → Fire Kit → Silver Mirror → EXORCISM</span>
-            </div>
-          </div>
-        </div>
-        <div class="wiki-entry" onclick="alert('GHOST profile opened')">
-          <div class="entity-icon">👻</div>
-          <div class="entity-info">
-            <div class="entity-name">GHOST — UNLOCKED</div>
-            <div class="entity-desc">
-              Cold spots • Moved objects • Floating items • EVP signals<br>
-              <span style="color:var(--gold)">
-              Banish: Iron Nails → Salt → Sage → EXORCISM</span>
-            </div>
-          </div>
-        </div>
-      `;
+          </div>`;
+      }
+      content.innerHTML = html;
     } else if (tab === 'shop') {
       content.innerHTML = `
         <div class="shop-grid">
-          <div class="shop-item">
-            <div class="item-name">Holy Water</div>
-            <div class="item-cost">$10 ×2</div>
-            <div class="item-desc">Counter Demon flame</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
-          <div class="shop-item">
-            <div class="item-name">Salt Circle</div>
-            <div class="item-cost">$5</div>
-            <div class="item-desc">Counter Demon curse</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
-          <div class="shop-item">
-            <div class="item-name">Crucifix</div>
-            <div class="item-cost">$10</div>
-            <div class="item-desc">Counter Demon summon</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
-          <div class="shop-item">
-            <div class="item-name">Sage Bundle</div>
-            <div class="item-cost">$8 ×2</div>
-            <div class="item-desc">Mid-combat curse remove</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
-          <div class="shop-item">
-            <div class="item-name">First-Aid Kit</div>
-            <div class="item-cost">$7</div>
-            <div class="item-desc">+5 HP mid-combat</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
-          <div class="shop-item">
-            <div class="item-name">Therapy</div>
-            <div class="item-cost">$15</div>
-            <div class="item-desc">Remove Paranoia</div>
-            <button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button>
-          </div>
+          <div class="shop-item"><div class="name">Holy Water</div><div class="cost">$10 ×2</div><div class="desc">Counters Demon/Possession</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
+          <div class="shop-item"><div class="name">Salt Circle</div><div class="cost">$5</div><div class="desc">Counters Demon/Ghost/Poltergeist</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
+          <div class="shop-item"><div class="name">Crucifix</div><div class="cost">$10</div><div class="desc">Counters Demon summon</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
+          <div class="shop-item"><div class="name">Iron Nails</div><div class="cost">$5</div><div class="desc">Counters Ghost</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
+          <div class="shop-item"><div class="name">Sage Bundle</div><div class="cost">$8 ×2</div><div class="desc">Cures curse mid-combat</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
+          <div class="shop-item"><div class="name">Garlic Wreath</div><div class="cost">$10</div><div class="desc">Counters Vampire</div><button class="buy-btn" onclick="this.textContent='BOUGHT'">BUY</button></div>
         </div>
-        <p style="margin-top:12px;color:var(--text2);font-size:0.72em;">
-          Exile kits are per-entity. Buy before investigating. No refunds.
-        </p>
-      `;
+        <p style="margin-top:10px;color:var(--text2);font-size:0.7em;">Buy for entity you suspect. Clues from multiple rooms may point to same entity.</p>`;
     } else if (tab === 'email') {
       content.innerHTML = `
-        <p style="color:var(--text2);margin-bottom:10px;">From: landlord@haunted.com</p>
-        <div class="wiki-entry" style="margin-bottom:8px;">
-          <div class="entity-info">
-            <div class="entity-name">Re: Room 4 "plumbing"</div>
-            <div class="entity-desc">
-              "Fixed the sink in the east wing. Ignore the Latin chanting. Rent due the 1st."<br>
-              <span style="color:var(--text2)">— Sent Day 8</span>
-            </div>
-          </div>
-        </div>
-        <div class="wiki-entry">
-          <div class="entity-info">
-            <div class="entity-name">Re: Room 3 noise complaint</div>
-            <div class="entity-desc">
-              "We've classified the entity as an 'amenity.' No rent adjustment."
-              <br><span style="color:var(--text2)">— Sent Day 12</span>
-            </div>
-          </div>
-        </div>
-      `;
+        <p style="color:var(--text2);margin-bottom:8px;">From: landlord@haunted.com</p>
+        <div class="wiki-card"><div><div class="title">Re: Multiple rooms</div><div class="desc">"We installed soundproofing in the attic and basement. Ignore the shared symptoms."<br><span style="color:var(--text2)">— Sent Day 8</span></div></div></div>
+        <div class="wiki-card"><div><div class="title">Re: Rent increase</div><div class="desc">"Due to 'energy density,' rent is still $200. Amenities are non-negotiable."<br><span style="color:var(--text2)">— Sent Day 12</span></div></div></div>`;
     }
   }
 
+  // ═══════════════════════════════════════════════════
+  // ═══ INIT ═══
+  // ═══════════════════════════════════════════════════
+  renderFloor();
   updateBottomBar();
+  laptopTab('wiki');
 </script>
 
 </body>

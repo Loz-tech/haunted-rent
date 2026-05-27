@@ -188,73 +188,367 @@ Save $2,000 to escape. Don't die.</p>
 <h2>2. Core Loop (Per Day)</h2>
 
 <div class="loop-diagram">
-┌──────────────────────────────────────────────────────────────┐
-│  MORNING            DAYTIME (timed)            EVENING         │
-│  ─────────         ───────────────────       ─────────────    │
-│  • Status check    ┌ SAFE TRACK ──────────┐  • Combat results │
-│  • Buy equipment   │ Inspect room         │  • Pay expenses   │
-│  • Review curses   │ Fill checklist       │  • Calculate $    │
-│    ↓               │ → $10 per room       │  • Apply curses   │
-│  BEGIN DAY         └──────────────────────┘  • Save progress  │
-│    ↓                         OR                               │
-│                    ┌ EXILE TRACK ──────────┐                  │
-│                    │ 1. Clue gathering     │                  │
-│                    │ 2. PC research (wiki) │                  │
-│                    │ 3. Buy exile items    │                  │
-│                    │ 4. Ritual combat      │ (time paused)    │
-│                    │ → $50–100 + room      │                  │
-│                    │   permanently cleared │                  │
-│                    └───────────────────────┘                  │
-│  ⏱ ~10 sec          ⏱ ~3-5 min              ⏱ ~20 sec       │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  MORNING              DAYTIME (timed)              EVENING         │
+│  ─────────           ─────────────────            ────────────    │
+│  • Status check      Floor plan → click room     • Room results  │
+│  • Buy items         Full-screen investigation    • Combat results │
+│    from laptop       → Danger meter rises         • Pay expenses  │
+│  • Review curses     → Click objects              • Calculate $   │
+│    ↓                 → Random combat?             • Curse check   │
+│  BEGIN DAY             Win = banished + $100      • Save progress │
+│                        Lose = game over                             │
+│                        Flee = −$20, entity enrages                  │
+│  ⏱ ~10 sec            ⏱ ~3-5 min                 ⏱ ~20 sec      │
+└──────────────────────────────────────────────────────────────────┘
 </div>
 
-<p><strong>Time constraint:</strong> Day ends at 6pm game time ≈ 5 real minutes. Each room
-inspection consumes time. Skip room = instant but $10 penalty + entity grows stronger.</p>
+<p><strong>Time constraint:</strong> Day ends at 6pm game time ≈ 5 real minutes.
+Moving between rooms on the floor plan is instant. Investigating a room takes time.
+No skip option — player must deal with every room.</p>
 
 <hr class="divider">
 
 <!-- ──────────────────────────────────────────────────────────── -->
-<h2>3. Room System (Two Tracks)</h2>
+<h2>3. Room Investigation (Full-Screen)</h2>
 
 <div class="highlight-box">
-<p><strong>Two approaches per room:</strong><br>
-<strong>SAFE TRACK:</strong> Inspect + fill checklist → $10 per room. Safe, steady income,
-room stays active next day.<br>
-<strong>EXILE TRACK:</strong> 4-phase process → ritual combat → banish entity permanently.
-High risk, $50–100 reward, room cleared forever. Failing combat = game over.</p>
+<p><strong>Unified investigation:</strong> Player enters room → full-screen view fills the screen.
+Click objects to inspect. Danger meter rises over time. If danger threshold reached →
+<strong>random combat event</strong> triggers. No pop-up windows, no skip. Research and shop
+are only accessible via <strong>laptop in YOUR ROOM</strong>.</p>
 </div>
 
 <!-- ──────────────────────────────────────── -->
-<h3>3.1 Room Map → Room Scene</h3>
+<h3>3.1 Floor Plan (House Map)</h3>
+
+<p>Building floor plan shows all rooms, corridors, and YOUR ROOM (player's room).
+Rooms color-coded by status. Click any room to enter. Click YOUR ROOM to access laptop
+(research + shop only here).</p>
 
 <ol>
-  <li>House map: clickable grid of rooms (e.g. 3×4). Each room shows entity icon + status (pending/cleared/skipped/banished)</li>
-  <li>Click room → room scene loads in center panel</li>
-  <li>Room composed of: base tileset (study/bedroom/kitchen/bathroom/hallway) + entity prop layer + anomaly visual layer</li>
-  <li>Click objects in room → inspection pop-up opens (Papers, Please style)</li>
+  <li>Floor plan shows 12 rooms + YOUR ROOM on a grid with connecting corridors</li>
+  <li>Each room displays entity icon + status (pending/cleared/banished/enraged/locked)</li>
+  <li>Persistent danger state per room: each day unvisited rooms accumulate danger</li>
+  <li>Entity type may be unknown initially (??? — research on laptop to identify)</li>
 </ol>
 
 <!-- ──────────────────────────────────────── -->
-<h3>3.2 Object Inspection (Papers, Please Style)</h3>
+<h3>3.2 Full-Screen Room View</h3>
 
-<p>Click any object in room view → small overlay window opens with detailed pixel view of that
-specific object/area. Shows either <strong>normal</strong> or <strong>anomalous</strong> state
-based on daily anomaly generation. Some objects have sub-hotspots within pop-up
-(e.g., click candle area → pop-up shows candle count + arrangement).</p>
+<p>Enter room → room fills screen. Pixel-art room with clickable objects.
+No pop-up overlay windows — objects are directly in the scene.</p>
 
-<h4>Clickable Objects Per Entity</h4>
+<h4>Room Scene Composition</h4>
 
 <table>
-  <tr><th>Entity</th><th>Inspectable Objects</th></tr>
-  <tr><td>Ghost</td><td>Mirror, thermometer, shelves (floating check), EVP device, EMF meter</td></tr>
-  <tr><td>Poltergeist</td><td>Chairs, table surface, TV/electronics, wall surface, window/glass</td></tr>
-  <tr><td>Vampire</td><td>Mirror, floor (soil trail), windows, mannequin/bed, garlic wreath</td></tr>
-  <tr><td>Zombie</td><td>Door chain, floor (dragging marks), window bars, body container, air vent (smell)</td></tr>
-  <tr><td>Demon</td><td>Floor (circle area), cross/wall, candles, wall symbols, thermometer</td></tr>
-  <tr><td>Witch</td><td>Shelves (hex bags), floor (bones), candles, windowsill (familiar), walls (sigils)</td></tr>
-  <tr><td>Shadow Entity</td><td>Light switch/fixture, room corners, dream catcher, bed, wall near bed</td></tr>
-  <tr><td>Possession</td><td>Wall text, chair/bed (levitation check), NPC body, holy water dish</td></tr>
+  <tr><th>Component</th><th>Description</th></tr>
+  <tr><td>Base tileset</td><td>Room type: study, bedroom, kitchen, bathroom, hallway, living room, basement, cellar, attic, den</td></tr>
+  <tr><td>Entity props</td><td>Decor/objects specific to entity type: candles (demon), garlic (vampire), chains (zombie), bones (witch), etc.</td></tr>
+  <tr><td>Anomalies</td><td>Visual distortions indicating danger: flickering, color shifts, static, misplaced objects</td></tr>
+  <tr><td>Danger meter</td><td>HUD bar showing entity aggression level. Rises over time during investigation.</td></tr>
+</table>
+
+<h4>Clickable Objects Per Entity</h4>
+<table>
+  <tr><th>Entity</th><th>Objects in Room</th><th>Visual Clue if Anomalous</th></tr>
+  <tr><td>Ghost</td><td>Mirror, thermometer, shelves, EVP, EMF</td><td>Floating objects, frost, flickering</td></tr>
+  <tr><td>Poltergeist</td><td>Chairs, table, TV, wall, window</td><td>Upside-down furniture, static, scratches</td></tr>
+  <tr><td>Vampire</td><td>Mirror, floor, window, mannequin, garlic</td><td>Cracked mirror, soil trail, bite marks</td></tr>
+  <tr><td>Zombie</td><td>Chain, floor, bars, container, vent</td><td>Green mist, handprints, broken chain</td></tr>
+  <tr><td>Demon</td><td>Floor circle, cross, candles, wall, thermometer</td><td>Chalk marks, heat haze, 4+ candles</td></tr>
+  <tr><td>Witch</td><td>Shelves, floor, candles, window, wall</td><td>Hex bags, bones, cat, sigils</td></tr>
+  <tr><td>Shadow Entity</td><td>Light, corner, dream catcher, bed, wall</td><td>Flickering bulb, shifting shadow, torn catcher</td></tr>
+  <tr><td>Possession</td><td>Wall, furniture, NPC body, holy water</td><td>Latin text, floating items, blank stare</td></tr>
+</table>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.3 Investigation &amp; Danger Meter</h3>
+
+<p>During investigation, the entity's <strong>danger meter</strong> rises continuously over time.
+The player must identify and click anomalous objects. Correct clicks reduce danger slightly.
+Missing anomalies or spending too long causes the meter to spike.</p>
+
+<div class="checklist-demo">
+DANGER METER: DEMON'S STUDY
+─────────────────────────────────
+
+Idle rise:  +2/sec baseline
+Miss anomaly: +15 per unseen object
+Wrong click:  +8 per normal object
+Correct click: −10 per anomaly found
+
+Threshold:  60 = WARNING (screen tint red)
+            80 = CRITICAL (entity sounds)
+            100 = COMBAT TRIGGERED
+
+Example pacing:
+  0-30 sec investigating → danger at ~45
+  Miss candles anomaly → +15 → danger at 60 (WARNING)
+  Click correct vent anomaly → −10 → danger at 50
+  Miss floor anomaly → +15 → danger at 65
+  Time passes 20 more sec → +40 → danger at 105 (COMBAT!)
+─────────────────────────────────
+</div>
+
+<p><strong>Investigation flow:</strong></p>
+<ol>
+  <li>Click objects directly in room view — no pop-ups</li>
+  <li>Anomalous objects glow faintly or have visual distortion</li>
+  <li>Click anomaly: danger −10, brief text confirms anomaly</li>
+  <li>Click normal object: danger +8, text says "normal"</li>
+  <li>Leave room anytime by clicking "Back to Map" — room investigation pauses</li>
+</ol>
+
+<p><strong>Leaving room:</strong> If player leaves before danger hits 100, investigation
+pauses. The room retains its danger level. Player can return later the same day
+or next day. Danger decays by 20 overnight.</p>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.4 Research &amp; Shop — Laptop in YOUR ROOM</h3>
+
+<p>Research (wiki) and shop are <strong>only accessible from your room</strong>.
+Click YOUR ROOM on the floor plan → enter your room → interact with laptop.</p>
+
+<h4>Laptop: Haunted Wiki</h4>
+
+<div class="ui-mockup">
+┌──────────────────────────────────────────────────────┐
+│  💻 HAUNTED-WIKI.DARKNET                              │
+│  ────────────────────────────────────────────────── │
+│  NAV: [🔍 RESEARCH] [🛒 SHOP] [📧 EMAILS]            │
+│                                                       │
+│  ENTITY PROFILES:                                     │
+│  ┌─────────────────────────────────────────────────┐│
+│  │ 👹 DEMON                                         ││
+│  │ Symptoms: 4+ candles, chalk marks, sulfur mist   ││
+│  │ Banish: Holy Water → Salt Circle → Crucifix     ││
+│  └─────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────┐│
+│  │ 👻 GHOST                                         ││
+│  │ Symptoms: cold spots, floating objects, EVP       ││
+│  │ Banish: Iron Nails → Salt → Sage                 ││
+│  └─────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────┐│
+│  │ 🧙 WITCH [LOCKED] — encounter to unlock          ││
+│  └─────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────┘
+</div>
+
+<p>Wiki shows entity profiles with symptoms and banishing ritual sequences.
+Entries unlock as player encounters or researches entities. Player browses freely,
+studies patterns, compares symptoms without pressure (time in YOUR ROOM is paused).</p>
+
+<h4>Laptop: Shop</h4>
+
+<p>Buy items from laptop. Same prices as before. Items go to inventory.
+Player must buy items <strong>before</strong> entering dangerous rooms.
+If combat triggers and player lacks the correct item → forced to flee or take massive damage.</p>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.5 Random Combat Event</h3>
+
+<p>When danger meter hits 100 during investigation, a <strong>combat event triggers</strong>.
+It is not player-initiated. The entity breaches its confinement and attacks.</p>
+
+<h4>Combat Trigger Conditions</h4>
+
+<table>
+  <tr><th>Factor</th><th>Effect on Danger</th></tr>
+  <tr><td>Baseline time</td><td>+2 per second during investigation</td></tr>
+  <tr><td>Miss anomaly</td><td>+15 per unseen anomaly (detected on leaving room)</td></tr>
+  <tr><td>Wrong click</td><td>+8 per normal object clicked</td></tr>
+  <tr><td>Correct anomaly click</td><td>−10 per anomaly found</td></tr>
+  <tr><td>Already enraged</td><td>+5 per second (entity angered from previous encounter)</td></tr>
+  <tr><td>Player has curse</td><td>Baseline +50% faster</td></tr>
+</table>
+
+<h4>Combat Resolution</h4>
+
+<p>Combat is the same rock-paper-scissors system (Section 3.7 of v1.1).
+4-turn ritual sequence. Player must use correct exile item each turn.
+Correct = ritual advances. Wrong = damage + item wasted.</p>
+
+<div class="ui-mockup">
+┌──────────────────────────────────────────────────────┐
+│  ⚔ ENTITY BREACH! — DEMON'S STUDY                    │
+│                                                       │
+│  The entity sensed your presence and broke free!     │
+│                                                       │
+│  Turn 1: Flame gathering                             │
+│  → Use correct item to counter:                      │
+│                                                       │
+│  [Holy Water] [Salt Circle] [Crucifix] [FLEE −$20]  │
+│                                                       │
+│  Inventory: Holy Water ×1, Salt Circle ×1, Crucif ×1 │
+│  HP: ██░░░░░░ 4/20                                   │
+└──────────────────────────────────────────────────────┘
+</div>
+
+<h4>Combat Outcomes</h4>
+
+<table>
+  <tr><th>Result</th><th>Effect</th></tr>
+  <tr><td>Victory (all 4 turns correct + EXORCISM)</td><td>Room banished permanently. $100 bonus. Next day: room replaced with safe empty room.</td></tr>
+  <tr><td>Defeat (HP 0)</td><td>Game over. Restart Day 1.</td></tr>
+  <tr><td>Flee</td><td>Escape room. −$20 penalty. Entity enraged next encounter (+50% danger speed, no tells).</td></tr>
+  <tr><td>Wrong item used</td><td>Damage (4-6 HP) + item wasted + ritual stalls. Next turn repeats same entity move.</td></tr>
+</table>
+
+<h4>Preparation Quality</h4>
+
+<p>Player preparation affects combat:</p>
+
+<table>
+  <tr><th>Prep Quality</th><th>Condition</th><th>Effect</th></tr>
+  <tr><td>Perfect</td><td>Wiki researched + correct items bought + entity known</td><td>All 4 tells visible. Player knows sequence.</td></tr>
+  <tr><td>Good</td><td>Wiki researched + some items bought</td><td>Turns 1, 3 visible. Turns 2, 4 partially hinted.</td></tr>
+  <tr><td>Decent</td><td>Entity known but no items bought</td><td>Only turn 1 visible. Other turns blind.</td></tr>
+  <tr><td>Poor</td><td>Entity unknown, random items bought</td><td>Incorrect items in inventory. Wrong counters likely.</td></tr>
+  <tr><td>Critical</td><td>Entity unknown, no items, high curses</td><td>Few tells. Fake tells possible. Near-guaranteed death.</td></tr>
+</table>
+
+<p>Preparation quality is evaluated at combat start, not before.
+Player must guess/predict which entity is in a room, buy items accordingly,
+or go in blind.</p>
+
+<h4>Post-Combat State</h4>
+
+<ul>
+  <li><strong>Victory:</strong> Room status BANISHED. Next day: entity gone. Room is empty safe room (no danger, no income from it). Other rooms unaffected.</li>
+  <li><strong>Flee:</strong> Room status ENRAGED. Entity stronger tomorrow. Danger rises faster if re-investigated. Fled rooms can stack enragement.</li>
+  <li><strong>Lose:</strong> Game over.</li>
+</ul>
+
+<!-- ──────────────────────────────────────── -->
+<h3>3.6 SAFE Rooms (After Banishment)</h3>
+
+<p>Banished rooms become SAFE. No entity, no danger. Player can optionally<br>
+quick-inspect for a small $5 bonus (quick room sweep, 5 seconds, no combat risk).
+Not required. Safe rooms are permanently cleared.</p>
+
+<h4>No Skip — All Rooms Must Be Addressed</h4>
+
+<p>Every room accumulates danger each unvisited day. Ignoring rooms for days causes<br>
+danger to spike overnight. Player must rotate through rooms or face unavoidable<br>
+high-danger investigation + near-certain combat. Strategic rotation is key.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>4. Curse &amp; Injury System (Persistent Debuffs)</h2>
+
+<table>
+  <tr>
+    <th>Type</th><th>Source</th><th>Effect</th><th>Combat Effect</th><th>Cure ($)</th>
+  </tr>
+  <tr>
+    <td>Physical Injury</td>
+    <td>Wrong combat counter</td>
+    <td>−20% inspection speed</td>
+    <td>HP reduced by 3 entering combat</td>
+    <td>First-aid kit ($7)</td>
+  </tr>
+  <tr>
+    <td>Vision Curse</td>
+    <td>Demon, witch, combat loss</td>
+    <td>Anomalies harder to spot (fainter glow, shorter flicker)</td>
+    <td>25% chance enemy tell text garbled</td>
+    <td>Ritual cleansing ($25)</td>
+  </tr>
+  <tr>
+    <td>Aura Curse</td>
+    <td>Ghost, shadow entity, combat loss</td>
+    <td>Danger meter rises +20% faster during investigation</td>
+    <td>Enemy sequence order may shift mid-fight</td>
+    <td>Prof. cleansing ($30)</td>
+  </tr>
+  <tr>
+    <td>Paranoia</td>
+    <td>3+ wrong clicks in one room</td>
+    <td>Normal objects flash red (false positives) — clicking them spikes danger</td>
+    <td>25% chance fake tell shown</td>
+    <td>Therapy ($15)</td>
+  </tr>
+  <tr>
+    <td>Fatigue</td>
+    <td>Time accumulation, no rest</td>
+    <td>Time ticks 30% faster, danger meter rises faster</td>
+    <td>Only 3 sec to read tell before it fades</td>
+    <td>Rest day ($50 lost income)</td>
+  </tr>
+</table>
+
+<p><strong>Lose condition:</strong> HP reaches 0 in combat → game over, restart Day 1.<br>
+3+ active curses also reduces max HP by 5 per curse, making combat survival harder.</p>
+
+<p><strong>Free rest day:</strong> Every 7th day (Sunday). Clears fatigue, +20% speed next day.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>5. Economy</h2>
+
+<div class="checklist-demo" style="font-size:0.92em;">
+<strong>INCOME:</strong>
+  + $50 daily savings (vs $120 normal rent — you "save" $70 conceptually)
+  + $10 per correctly investigated room (anomalies found, combat avoided)
+  + $100 per banished entity (one-time per room)
+  + $30 weekly bonus (all rooms addressed that week)
+
+<strong>EXPENSES:</strong>
+  − Exile items: $5–$15 per item (combat preparation)
+  − Equipment: $5–$30 per item (inspection aids)
+  − Cures: $7–$30 per treatment
+  − Combat flee: −$20 per flee
+─────────────────────────────────────────
+<strong>ESCAPE GOAL: $2,000 saved</strong>
+</div>
+
+<p><strong>Tension:</strong> Items buy safety but delay escape. Ignoring rooms causes danger to compound,
+making future encounters harder and harder. Player must balance item spending
+with room rotation speed.</p>
+
+<h3>Equipment Shop (Laptop Only)</h3>
+
+<table>
+  <tr><th>Item</th><th>Cost</th><th>Category</th><th>Effect</th><th>Charges</th></tr>
+  <tr><td>Salt Line</td><td>$5</td><td>Combat</td><td>Counter Demon curse, Ghost cold snap</td><td>1 use</td></tr>
+  <tr><td>Holy Water</td><td>$10</td><td>Combat</td><td>Counter Demon flame, Possession blast</td><td>2 uses</td></tr>
+  <tr><td>Crucifix</td><td>$10</td><td>Combat</td><td>Counter Demon dark summon</td><td>1 use</td></tr>
+  <tr><td>Iron Nails</td><td>$5</td><td>Combat</td><td>Counter Ghost phase-through</td><td>1 use</td></tr>
+  <tr><td>Sage Bundle</td><td>$8</td><td>Combat / Cure</td><td>Counter Ghost wail / remove 1 curse mid-combat</td><td>2 uses</td></tr>
+  <tr><td>Anchor Kit</td><td>$8</td><td>Combat</td><td>Counter Poltergeist throw</td><td>1 use</td></tr>
+  <tr><td>Garlic Wreath</td><td>$10</td><td>Combat</td><td>Counter Vampire lunge, halves damage</td><td>1 fight</td></tr>
+  <tr><td>Silver Mirror</td><td>$10</td><td>Combat / Inspect</td><td>Counter Vampire charm, reveal hidden clues</td><td>1 use</td></tr>
+  <tr><td>Silver Stake</td><td>$12</td><td>Combat</td><td>Counter Vampire blood drain</td><td>1 use</td></tr>
+  <tr><td>Door Chain</td><td>$5</td><td>Combat</td><td>Counter Zombie heavy slam</td><td>1 use</td></tr>
+  <tr><td>Blessed Oil</td><td>$7</td><td>Combat / Cure</td><td>Counter Zombie infect, remove poison, heal 2 HP</td><td>2 uses</td></tr>
+  <tr><td>Purification Salt</td><td>$5</td><td>Combat</td><td>Counter Zombie corpse drag</td><td>1 use</td></tr>
+  <tr><td>Fire Kit</td><td>$12</td><td>Combat</td><td>Counter Witch brew, +dmg</td><td>1 use</td></tr>
+  <tr><td>Dream Catcher</td><td>$12</td><td>Combat</td><td>Counter Shadow Entity vanish</td><td>1 fight</td></tr>
+  <tr><td>Light Talisman</td><td>$10</td><td>Combat</td><td>Reveal Shadow Entity, counter ambush</td><td>1 fight</td></tr>
+  <tr><td>Iron Restraints</td><td>$15</td><td>Combat</td><td>Counter Possession possess attempt</td><td>1 use</td></tr>
+  <tr><td>EMF Reader</td><td>$8</td><td>Inspect</td><td>Highlight ghost anomalies brighter, −20% to danger from ghost rooms</td><td>3 rooms</td></tr>
+  <tr><td>Night Goggles</td><td>$25</td><td>Inspect</td><td>See anomalies in dark rooms, bypass vision curse penalties</td><td>1 day</td></tr>
+  <tr><td>First-Aid Kit</td><td>$7</td><td>Cure</td><td>Heal 5 HP mid-combat or remove 1 injury</td><td>2 uses</td></tr>
+  <tr><td>Therapy</td><td>$15</td><td>Cure</td><td>Remove paranoia</td><td>Instant</td></tr>
+  <tr><td>Ritual Cleansing</td><td>$25</td><td>Cure</td><td>Remove 1 vision or aura curse</td><td>Instant</td></tr>
+  <tr><td>Prof. Cleansing</td><td>$30</td><td>Cure</td><td>Remove 1 any curse</td><td>Instant</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>6. Weekly Progression</h2>
+
+<table>
+  <tr><th>Week</th><th>Rooms</th><th>New Entities</th><th>Notes</th></tr>
+  <tr><td>1</td><td>3</td><td>Ghost, Poltergeist</td><td>Tutorial. 7-min timer. Demon room locked.</td></tr>
+  <tr><td>2</td><td>5</td><td>Vampire, Zombie</td><td>Timer tightens to 5.5 min. Danger rises faster.</td></tr>
+  <tr><td>3</td><td>8</td><td>Demon, Witch</td><td>Curse combos dangerous. First real combat test.</td></tr>
+  <tr><td>4</td><td>11</td><td>Shadow Entity, Possession</td><td>Max pressure. 4.5 min timer. High danger baseline.</td></tr>
+  <tr><td>5+</td><td>12</td><td>All active</td><td>Escape race. All rooms enraged if ignored. Endurance.</td></tr>
 </table>
 
 <h4>Anomaly Generation (Per Room, Per Day)</h4>

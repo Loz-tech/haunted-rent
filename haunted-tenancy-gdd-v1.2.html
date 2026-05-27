@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haunted Tenancy — Game Design Document v1.2</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --accent2: #533483;
+    --text: #eaeaea;
+    --text2: #a0a0b0;
+    --green: #4ecca3;
+    --gold: #f0c040;
+    --radius: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  h1 { font-size:2.4em; color:var(--accent); margin-bottom:4px; letter-spacing:-0.5px; }
+  h1 + p { color:var(--text2); font-size:1.1em; margin-bottom:32px; }
+  h2 {
+    font-size:1.55em; color:var(--accent); margin:44px 0 16px;
+    padding-bottom:6px; border-bottom:2px solid var(--accent2);
+  }
+  h3 { font-size:1.2em; color:var(--gold); margin:24px 0 10px; }
+  h4 { font-size:1.05em; color:var(--text); margin:16px 0 6px; }
+  p, li { max-width:70ch; }
+  p { margin-bottom:10px; color:var(--text2); }
+  ul, ol { margin:6px 0 12px 22px; color:var(--text2); }
+  li { margin-bottom:3px; }
+  li strong, p strong { color:var(--text); }
+  a { color:var(--accent); }
+
+  .highlight-box {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border-left: 4px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 18px 22px;
+    margin: 16px 0 22px;
+    font-size: 1.05em;
+  }
+  .highlight-box p { color: var(--text); margin:0; }
+
+  table {
+    width:100%; border-collapse:collapse; margin:12px 0 20px;
+    font-size:0.92em; border-radius:var(--radius); overflow:hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  th, td { padding:10px 14px; text-align:left; }
+  th { background: var(--surface2); color: var(--gold); font-weight:600; white-space:nowrap; }
+  td { background: var(--surface); color: var(--text2); border-bottom:1px solid rgba(255,255,255,0.04); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background: rgba(233,69,96,0.08); }
+  td:first-child { color:var(--text); font-weight:500; }
+
+  .mda-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;
+    margin:14px 0 22px;
+  }
+  .mda-card {
+    background: var(--surface); border-radius:var(--radius);
+    padding:18px; border-top:3px solid var(--accent);
+  }
+  .mda-card h3 { margin-top:0; font-size:1em; }
+  .mda-card ul { margin-left:16px; }
+  .mda-card:nth-child(2) { border-top-color: var(--gold); }
+  .mda-card:nth-child(3) { border-top-color: var(--green); }
+
+  /* ── Core Loop Day Phases ── */
+  .day-phase-flow {
+    display:grid; grid-template-columns:1fr 2fr 1fr; gap:0;
+    margin:14px 0 22px;
+  }
+  .day-phase-flow .phase {
+    background: var(--surface); padding:20px 16px; text-align:center;
+  }
+  .day-phase-flow .phase:first-child { border-radius:var(--radius) 0 0 var(--radius); border-left:3px solid var(--accent); }
+  .day-phase-flow .phase:last-child { border-radius:0 var(--radius) var(--radius) 0; border-right:3px solid var(--green); }
+  .day-phase-flow .phase.mid { border-left:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06); border-top:3px solid var(--gold); }
+  .phase .phase-title { font-size:1.1em; font-weight:700; color:var(--gold); margin-bottom:10px; }
+  .phase .phase-steps { color:var(--text2); font-size:0.85em; line-height:1.6; text-align:left; }
+  .phase .phase-steps span { color:var(--text); }
+  .phase .phase-time { margin-top:12px; font-size:0.78em; color:var(--text2); opacity:0.7; }
+  .day-phase-arrows { display:flex; align-items:center; justify-content:center; gap:8px; margin:0 0 8px; }
+  .day-phase-arrows span { font-size:1.4em; color:var(--accent2); }
+
+  /* ── Room View Mockup ── */
+  .room-mockup {
+    background: var(--surface); border:1px solid rgba(255,255,255,0.08);
+    border-radius:var(--radius); overflow:hidden; margin:14px 0 22px;
+  }
+  .room-mockup .rm-header {
+    background: var(--surface2); padding:10px 16px; display:flex;
+    justify-content:space-between; align-items:center;
+    font-size:0.9em; border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .room-mockup .rm-header .rm-title { color:var(--text); font-weight:700; }
+  .room-mockup .rm-header .rm-meta { color:var(--text2); font-size:0.8em; }
+  .room-mockup .rm-body { padding:16px; display:grid; grid-template-columns:1fr 180px; gap:14px; }
+  .room-mockup .rm-scene {
+    background: #1a1a2e; border:1px solid rgba(255,255,255,0.06);
+    border-radius:4px; padding:16px; min-height:200px;
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    font-size:0.8em; color:var(--text2);
+  }
+  .room-mockup .rm-object {
+    background: var(--surface); border:1px solid rgba(255,255,255,0.08);
+    border-radius:4px; padding:10px; text-align:center; color:var(--text2);
+  }
+  .room-mockup .rm-object.anomaly { border-color:var(--accent); color:var(--accent); }
+  .room-mockup .rm-object.found { border-color:var(--green); color:var(--green); }
+  .rm-side { font-size:0.8em; }
+  .rm-side .clue-list {
+    background: var(--surface2); border-radius:4px; padding:10px;
+    margin-top:8px; color:var(--text2);
+  }
+  .rm-side .clue-list .clue-item { padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.8em; }
+  .rm-side .clue-list .clue-item strong { color:var(--gold); }
+  .rm-dangers {
+    display:flex; gap:16px; padding:0 16px 12px;
+    font-size:0.82em;
+  }
+  .rm-dangers .bar-group { flex:1; }
+  .rm-dangers .bar-label { color:var(--text2); margin-bottom:4px; }
+  .rm-dangers .bar-track {
+    height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin-bottom:2px;
+  }
+  .rm-dangers .bar-fill {
+    height:100%; border-radius:4px; transition:width 0.3s;
+  }
+  .rm-dangers .bar-fill.danger { background:var(--accent); }
+  .rm-dangers .bar-fill.suspicion { background:var(--gold); }
+  .rm-dangers .bar-val { font-size:0.75em; color:var(--text2); }
+  .rm-back {
+    padding:8px 16px 14px; font-size:0.82em;
+  }
+  .rm-back span { color:var(--text2); background:var(--surface2); padding:4px 10px; border-radius:4px; }
+
+  /* ── Meter Card ── */
+  .meter-card {
+    background: var(--surface); border:1px solid rgba(255,255,255,0.06);
+    border-radius:var(--radius); padding:18px 20px; margin:12px 0 20px;
+  }
+  .meter-card .meter-title {
+    font-weight:700; color:var(--gold); margin-bottom:12px; font-size:0.95em;
+  }
+  .meter-card .meter-row {
+    display:flex; align-items:center; padding:4px 0; font-size:0.85em; color:var(--text2);
+  }
+  .meter-card .meter-row strong { color:var(--text); min-width:100px; }
+  .meter-card .meter-row .val { color:var(--accent); font-weight:600; }
+  .meter-card .meter-thresholds {
+    margin-top:10px; display:flex; gap:12px; flex-wrap:wrap;
+  }
+  .meter-card .threshold {
+    font-size:0.78em; padding:4px 10px; border-radius:4px;
+  }
+  .meter-card .threshold.safe { background:rgba(78,204,163,0.15); color:var(--green); }
+  .meter-card .threshold.warn { background:rgba(240,192,64,0.15); color:var(--gold); }
+  .meter-card .threshold.crit { background:rgba(233,69,96,0.15); color:var(--accent); }
+  .meter-card .threshold.peak { background:rgba(233,69,96,0.25); color:var(--accent); font-weight:700; }
+
+  /* ── Clue Compare Diagram ── */
+  .clue-compare {
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0 22px;
+  }
+  .clue-compare .clue-room {
+    background: var(--surface); border-radius:var(--radius); padding:16px;
+    border-top:3px solid var(--accent);
+  }
+  .clue-compare .clue-room .clue-room-name {
+    font-weight:700; color:var(--text); margin-bottom:8px;
+    font-size:0.95em;
+  }
+  .clue-compare .clue-room .clue-room-floor {
+    font-size:0.75em; color:var(--text2); margin-bottom:10px;
+  }
+  .clue-compare .clue-room .clue-entry {
+    padding:5px 0; font-size:0.82em; color:var(--text2);
+    border-bottom:1px solid rgba(255,255,255,0.04);
+  }
+  .clue-compare .clue-room .clue-entry strong { color:var(--gold); }
+  .clue-compare .clue-match {
+    grid-column:1/-1; background:rgba(78,204,163,0.1);
+    border:1px solid rgba(78,204,163,0.3); border-radius:var(--radius);
+    padding:12px 16px; text-align:center; font-size:0.85em; color:var(--green);
+  }
+
+  /* ── Combat UI Mockup ── */
+  .combat-mockup {
+    background: var(--surface); border:2px solid rgba(233,69,96,0.4);
+    border-radius:var(--radius); overflow:hidden; margin:14px 0 22px;
+  }
+  .combat-mockup .cm-header {
+    background: rgba(233,69,96,0.2); padding:10px 16px;
+    font-weight:700; color:var(--accent); font-size:0.95em;
+  }
+  .combat-mockup .cm-body { padding:16px; }
+  .combat-mockup .cm-hp {
+    margin-bottom:10px; font-size:0.85em; color:var(--text);
+  }
+  .combat-mockup .cm-hp .hp-bar {
+    display:inline-block; height:10px; width:100px; background:var(--accent); border-radius:3px; margin-left:6px; vertical-align:middle;
+  }
+  .combat-mockup .cm-hp .hp-bar-bg {
+    display:inline-block; height:10px; width:100px; background:rgba(255,255,255,0.1); border-radius:3px; vertical-align:middle;
+  }
+  .combat-mockup .cm-flavor {
+    color:var(--text2); font-size:0.82em; margin-bottom:10px; font-style:italic;
+  }
+  .combat-mockup .cm-entity {
+    background: var(--surface2); padding:8px 12px; border-radius:4px;
+    margin-bottom:10px; font-size:0.85em; color:var(--gold);
+  }
+  .combat-mockup .cm-turn {
+    background:rgba(233,69,96,0.1); padding:10px 14px; border-radius:4px;
+    margin-bottom:12px; font-size:0.85em;
+  }
+  .combat-mockup .cm-turn .tell { color:var(--text); }
+  .combat-mockup .cm-turn .counter { color:var(--accent); font-weight:600; }
+  .combat-mockup .cm-inv {
+    color:var(--text2); font-size:0.8em; margin-bottom:12px;
+  }
+  .combat-mockup .cm-actions {
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .combat-mockup .cm-actions .cm-btn {
+    background:var(--surface2); color:var(--text); padding:6px 14px;
+    border-radius:4px; font-size:0.82em; border:1px solid rgba(255,255,255,0.08);
+  }
+  .combat-mockup .cm-actions .cm-btn.flee { color:var(--accent); }
+
+  /* ── Research/Shop Mockup ── */
+  .research-mockup {
+    background: var(--surface); border:1px solid rgba(78,204,163,0.3);
+    border-radius:var(--radius); overflow:hidden; margin:14px 0 22px;
+  }
+  .research-mockup .rh-header {
+    background: rgba(78,204,163,0.12); padding:10px 16px;
+    font-weight:700; color:var(--green); font-size:0.95em;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .research-mockup .rh-body { padding:16px; }
+  .research-mockup .rh-tabs {
+    display:flex; gap:6px; margin-bottom:14px;
+  }
+  .research-mockup .rh-tab {
+    background:var(--surface2); padding:6px 14px; border-radius:4px;
+    font-size:0.82em; color:var(--text2);
+  }
+  .research-mockup .rh-tab.active { background:rgba(78,204,163,0.2); color:var(--green); }
+  .research-mockup .rh-entry {
+    background: var(--surface2); border-radius:4px; padding:12px; margin-bottom:8px;
+    font-size:0.82em;
+  }
+  .research-mockup .rh-entry .rh-name { color:var(--gold); font-weight:600; }
+  .research-mockup .rh-entry .rh-clues { color:var(--green); font-size:0.78em; }
+  .research-mockup .rh-entry .rh-match { color:var(--text2); font-size:0.78em; margin-top:4px; }
+  .research-mockup .rh-entry .rh-sequence { color:var(--accent); font-size:0.78em; margin-top:4px; }
+  .research-mockup .rh-entry.unknown { opacity:0.5; }
+
+  /* ── Economy Card ── */
+  .economy-card {
+    background: var(--surface); border-radius:var(--radius); padding:20px; margin:14px 0 22px;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+  .economy-card .econ-col h4 {
+    margin:0 0 10px; font-size:0.95em;
+  }
+  .economy-card .econ-row {
+    font-size:0.85em; color:var(--text2); padding:3px 0;
+    display:flex; justify-content:space-between;
+  }
+  .economy-card .econ-row .amount { color:var(--green); font-weight:600; }
+  .economy-card .econ-row.expense .amount { color:var(--accent); }
+  .economy-card .econ-goal {
+    grid-column:1/-1; text-align:center;
+    padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);
+    font-size:1.1em; font-weight:700; color:var(--gold);
+  }
+
+  @media (max-width:700px) {
+    .day-phase-flow { grid-template-columns:1fr; }
+    .room-mockup .rm-body { grid-template-columns:1fr; }
+    .clue-compare { grid-template-columns:1fr; }
+    .economy-card { grid-template-columns:1fr; }
+  }
+
+  .todo-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;
+    margin:14px 0 22px;
+  }
+  .todo-card {
+    background: var(--surface); border-radius:var(--radius); padding:16px;
+  }
+  .todo-card h3 { margin-top:0; font-size:1em; margin-bottom:8px; }
+  .todo-card li { font-size:0.9em; }
+  .todo-card:nth-child(1) { border-left:3px solid var(--accent); }
+  .todo-card:nth-child(2) { border-left:3px solid var(--gold); }
+  .todo-card:nth-child(3) { border-left:3px solid var(--green); }
+
+  code {
+    font-family:'Courier New', monospace;
+    background:var(--surface2); padding:1px 6px; border-radius:3px;
+    font-size:0.9em;
+  }
+
+  .divider { border:none; border-top:1px solid rgba(255,255,255,0.06); margin:32px 0; }
+
+  .changelog {
+    background: var(--surface); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius); padding: 16px 20px; margin: 12px 0 20px;
+    font-size: 0.85em; color: var(--text2);
+  }
+  .changelog strong { color: var(--gold); }
+
+  @media (max-width:700px) {
+    .mda-grid, .todo-grid { grid-template-columns:1fr; }
+    body { padding:20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Haunted Tenancy</h1>
+<p>Game Design Document — v1.2<br>
+Genre: 2D Horror Comedy Investigation<br>
+Platform: Godot Engine / Pixel Art</p>
+
+<div class="highlight-box">
+<p><strong>Elevator Pitch:</strong> You're a cheapskate tenant in a cursed multi-floor building.
+Rent is impossibly low because every room is haunted. You don't know which entity haunts which room.
+Investigate across floors to piece together symptoms, research on your laptop,
+buy the right exorcism items, and survive when entities breach their confinement.
+Save $2,000 to escape. Don't die.</p>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>1. MDA Framework</h2>
+
+<div class="mda-grid">
+  <div class="mda-card">
+    <h3>Mechanics (Rules)</h3>
+    <ul>
+      <li><strong>Core verb:</strong> Room investigation — enter room, click objects, find anomalies, manage danger.</li>
+      <li><strong>Resources:</strong> Money ($), Time (day timer), HP (20 base), Inventory (exile items).</li>
+      <li><strong>Progression:</strong> Rooms unlock per week. Entities cross-floors — same entity may haunt multiple rooms.</li>
+      <li><strong>Constraints:</strong> Danger meter (0-100), Suspicion meter (0-100), curse debuffs, no skip, all rooms must be addressed.</li>
+    </ul>
+  </div>
+  <div class="mda-card">
+    <h3>Dynamics (Behavior)</h3>
+    <ul>
+      <li><strong>Risk/reward:</strong> Spend on items to survive combat, or save faster but risk spiral.</li>
+      <li><strong>Information game:</strong> Unknown entities, cross-room symptoms, piecing together which entity haunts which rooms.</li>
+      <li><strong>Time triage:</strong> More rooms = less time per room. Must rotate through floors or danger accumulates.</li>
+      <li><strong>Carelessness cascade:</strong> Spam clicks → suspicion + paranoia → worse investigation → more combat.</li>
+    </ul>
+  </div>
+  <div class="mda-card">
+    <h3>Aesthetics (Experience)</h3>
+    <ul>
+      <li><strong>Tension:</strong> Ever-rising danger meter. Entity could breach at any moment.</li>
+      <li><strong>Discovery:</strong> Clues across rooms reveal entity identity. Detective satisfaction.</li>
+      <li><strong>Dark humor:</strong> Bureaucratic horror framing. Landlord treats entities as "amenities."</li>
+      <li><strong>Competence:</strong> Learning patterns, optimizing investigation routes across floors.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>2. Core Loop (Per Day)</h2>
+
+<div class="day-phase-arrows">
+  <span>▼</span><span>▼</span><span>▼</span>
+</div>
+<div class="day-phase-flow">
+  <div class="phase">
+    <div class="phase-title">MORNING</div>
+    <div class="phase-steps">
+      <span>Status check</span><br>
+      <span>Check curses</span><br>
+      BEGIN DAY
+    </div>
+    <div class="phase-time">~10 sec</div>
+  </div>
+  <div class="phase mid">
+    <div class="phase-title">DAYTIME (timed)</div>
+    <div class="phase-steps">
+      <span>Select floor</span><br>
+      <span>Click room on map</span><br>
+      = Full-screen investigate<br>
+      = Find anomalies<br>
+      = Danger meter rises<br>
+      = Suspicion tracks<br>
+      = Combat if danger / suspicion hit 100<br>
+      = Win = room banished (+$100)<br>
+      = Lose = game over<br>
+      = Flee = $$-$20 + enraged
+    </div>
+    <div class="phase-time">~4-6 min</div>
+  </div>
+  <div class="phase">
+    <div class="phase-title">EVENING</div>
+    <div class="phase-steps">
+      <span>Combat results</span><br>
+      <span>Pay expenses</span><br>
+      Calculate $$<br>
+      Save progress<br>
+      Apply curses
+    </div>
+    <div class="phase-time">~20 sec</div>
+  </div>
+</div>
+
+<p><strong>Time constraint:</strong> Day ends at 6pm game time ≈ 5 real minutes. Moving between floors
+is instant (click stairs or tabs). Each room investigation consumes time. Danger accumulates in
+unvisited rooms overnight (risk compounds).</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>3. Multi-Floor Building</h2>
+
+<p>The building has <strong>4 floors</strong> with <strong>12 haunted rooms</strong> plus <strong>YOUR ROOM</strong>.
+Player navigates via floor selector tabs and stair cells on the grid.</p>
+
+<h3>Floor Distribution</h3>
+
+<table>
+  <tr><th>Floor</th><th>Rooms</th><th>Ambiance</th><th>Danger Modifier</th></tr>
+  <tr>
+    <td>Basement</td>
+    <td>R6 Basement, R7 Cellar, R12 Boiler Room</td>
+    <td>Dark, damp, pipes creaking</td>
+    <td>+20% danger speed</td>
+  </tr>
+  <tr>
+    <td>Floor 1 (Ground)</td>
+    <td>R4 Kitchen, R5 Pantry, R8 Den, R9 Library, <strong>YOUR ROOM</strong></td>
+    <td>Normal house, creaky floorboards</td>
+    <td>Normal (1.0)</td>
+  </tr>
+  <tr>
+    <td>Floor 2</td>
+    <td>R3 Study, R1 Bathroom, R2 Bedroom, R11 Guest Room</td>
+    <td>Bedroom hallway, muffled sounds</td>
+    <td>Normal (1.0)</td>
+  </tr>
+  <tr>
+    <td>Attic</td>
+    <td>R10 Storage, R13 Crawlspace</td>
+    <td>Dusty, cramped, hot in summer</td>
+    <td>+10% danger speed</td>
+  </tr>
+</table>
+
+<h3>Navigation</h3>
+<ul>
+  <li><strong>Floor tabs</strong> at top of the map: <code>[BASEMENT] [FLOOR 1] [FLOOR 2] [ATTIC]</code></li>
+  <li><strong>Stair cells</strong> in the grid: click to move up/down one floor</li>
+  <li>Switching floors is instant, no time cost</li>
+  <li>YOUR ROOM is on Floor 1 (ground level) — laptop access only from here</li>
+</ul>
+
+<h3>Floor-Specific Danger</h3>
+<p>Danger rises faster in darker or more confined floors. Basement (+20%) is riskier
+but yields more valuable clues. Attic (+10%) is cramped and harder to navigate.
+Floor 1 and 2 are standard. This encourages strategic routing — clear dangerous floors
+quickly before the timer runs out.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>4. Room Investigation (Full Screen)</h2>
+
+<p>Click a room on the floor plan → room view takes over the <strong>entire screen</strong>.
+No pop-up windows. No side panels. Objects are directly in the pixel-art room scene.
+Click them to inspect.</p>
+
+<h3>Room View Composition</h3>
+
+<div class="room-mockup">
+  <div class="rm-header">
+    <span class="rm-title">ROOM — STUDY</span>
+    <span class="rm-meta">FLOOR 2 &nbsp;|&nbsp; ENTITY: ???</span>
+  </div>
+  <div class="rm-dangers">
+    <div class="bar-group">
+      <div class="bar-label">ROOM DANGER 45%</div>
+      <div class="bar-track"><div class="bar-fill danger" style="width:45%"></div></div>
+      <div class="bar-val">45/100</div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-label">SUSPICION 15% — Safe</div>
+      <div class="bar-track"><div class="bar-fill suspicion" style="width:15%"></div></div>
+      <div class="bar-val">15/100</div>
+    </div>
+  </div>
+  <div class="rm-body">
+    <div class="rm-scene">
+      <div class="rm-object anomaly">DESK<br>4 candles in arc</div>
+      <div class="rm-object">WALL<br>Cross intact</div>
+      <div class="rm-object anomaly">FLOOR<br>Chalk marks</div>
+      <div class="rm-object anomaly">WALL<br>Pentagram</div>
+      <div class="rm-object">THERMOMETER<br>73°F OK</div>
+      <div class="rm-object anomaly">VENT<br>Sulfur mist</div>
+    </div>
+    <div class="rm-side">
+      <strong style="color:var(--gold);">CLUES</strong>
+      <div class="clue-list">
+        <div class="clue-item"><strong>Study:</strong> 4 candles</div>
+        <div class="clue-item"><strong>Study:</strong> chalk marks</div>
+        <div class="clue-item"><strong>Study:</strong> pentagram</div>
+        <div class="clue-item"><strong>Study:</strong> sulfur mist</div>
+        <div class="clue-item"><strong>Kitchen:</strong> sulfur smell</div>
+      </div>
+    </div>
+  </div>
+  <div class="rm-back"><span>← BACK TO MAP</span></div>
+</div>
+
+<h3>Object Types</h3>
+
+<table>
+  <tr><th>Type</th><th>Appearance</th><th>Click Result</th></tr>
+  <tr>
+    <td>Normal object</td>
+    <td>Neutral border, no glow</td>
+    <td>"Nothing here..." +6 danger, +8 suspicion</td>
+  </tr>
+  <tr>
+    <td>Anomalous object</td>
+    <td>Faint red glow, subtle flicker</td>
+    <td>"CLUE FOUND!" −15 danger, −5 suspicion, clue card added</td>
+  </tr>
+  <tr>
+    <td>Already found anomaly</td>
+    <td>Green outline + ✓ mark</td>
+    <td>No re-click effect</td>
+  </tr>
+</table>
+
+<h3>Clickable Objects Per Entity</h3>
+
+<table>
+  <tr><th>Entity</th><th>Inspectable Objects</th><th>Clues If Anomalous</th></tr>
+  <tr><td>Ghost</td><td>Mirror, thermometer, shelves, EVP, EMF, floor</td><td>Frost, cold spot, floating object, EVP whisper, flickering light</td></tr>
+  <tr><td>Poltergeist</td><td>Chairs, TV, wall, vase, window</td><td>Upside-down chair, TV static, wall scratches, floating, broken glass</td></tr>
+  <tr><td>Vampire</td><td>Mirror, floor, window, towel/garlic, bed</td><td>No reflection, soil trail, bite marks, garlic wilted, broken seal</td></tr>
+  <tr><td>Zombie</td><td>Chain, floor, boiler, pipes, valve</td><td>Broken chain, drag marks, green miasma, decay smell, handprints</td></tr>
+  <tr><td>Demon</td><td>Desk/candles, floor, cross, wall, thermometer, vent</td><td>4+ candles, chalk marks, inverted symbols, sulfur smell, heat haze</td></tr>
+  <tr><td>Witch</td><td>Shelves, floor, window, cauldron, wall</td><td>Hex bags, bone piles, black cat, brew bubbling, blood sigils</td></tr>
+  <tr><td>Shadow Entity</td><td>Corner, lamp, dream catcher, bed, wall, closet</td><td>Shifting shadow, flickering bulb, torn catcher, cold wall, whispers</td></tr>
+  <tr><td>Possession</td><td>Books, wall, bust/statue, holy water, desk</td><td>Levitating furniture, Latin text, blank stare, water hiss, head rotation</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>5. Danger Meter &amp; Suspicion System</h2>
+
+<p>Two independent meters govern the investigation:</p>
+
+<h3>Room Danger (0-100)</h3>
+
+<div class="meter-card">
+<div class="meter-title">DANGER METER — Demon's Study</div>
+<div class="meter-row"><strong>Idle rise:</strong> +1.0/sec baseline (<span class="val">basement +20%</span>, attic +10%)</div>
+<div class="meter-row"><strong>Miss anomaly:</strong> <span class="val">+15</span> per unseen anomaly (auto-added on leaving room)</div>
+<div class="meter-row"><strong>Wrong click:</strong> <span class="val">+6</span> per normal object clicked</div>
+<div class="meter-row"><strong>Correct click:</strong> <span class="val">-15</span> per anomaly found</div>
+<div class="meter-row"><strong>Curse penalty:</strong> <span class="val">+30%</span> faster with Paranoia or Fatigue</div>
+<div class="meter-thresholds">
+  <span class="threshold safe">0-39: SAFE</span>
+  <span class="threshold warn">40-69: WARNING</span>
+  <span class="threshold crit">70-99: CRITICAL</span>
+  <span class="threshold peak">100: COMBAT</span>
+</div>
+</div>
+
+<h3>Suspicion (0-100)</h3>
+
+<div class="meter-card">
+<div class="meter-title">SUSPICION METER — Tracks How "Noticeable" Player Is</div>
+<div class="meter-row"><strong>Wrong click:</strong> <span class="val">+8</span> per normal object</div>
+<div class="meter-row"><strong>Spam click:</strong> <span class="val">+10</span> per click within 400ms of previous</div>
+<div class="meter-row"><strong>Consecutive misses:</strong> <span class="val">+15</span> on 3rd wrong click in a row</div>
+<div class="meter-row"><strong>Correct anomaly:</strong> <span class="val">-5</span></div>
+<div class="meter-row"><strong>Leaving room:</strong> reset to 0</div>
+<div class="meter-thresholds">
+  <span class="threshold safe">0-24: Safe</span>
+  <span class="threshold warn">25-49: Rising</span>
+  <span class="threshold crit">50-79: High</span>
+  <span class="threshold crit">80-99: CRITICAL</span>
+  <span class="threshold peak">100: ATTACK</span>
+</div>
+</div>
+
+<p><strong>Both meters operate simultaneously.</strong> Danger is the primary threat
+(time-based, unavoidable if you stay). Suspicion is optional — skilled players
+investigate cleanly with low suspicion, while careless players face additional combat threats.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>6. Carelessness Penalty System</h2>
+
+<p>Five penalties punish reckless investigation. All penalties accumulate and stack.</p>
+
+<table>
+  <tr><th>#</th><th>Penalty</th><th>Trigger</th><th>Immediate Effect</th><th>Lasting Effect</th></tr>
+  <tr>
+    <td>1</td><td><strong>Too Fast</strong></td>
+    <td>Click within 400ms of previous click</td>
+    <td>+10 suspicion, +5 danger</td>
+    <td>None (resets on next room)</td>
+  </tr>
+  <tr>
+    <td>2</td><td><strong>Spam Same Object</strong></td>
+    <td>Click same object 3+ times</td>
+    <td>+20 danger — "Entity annoyed"</td>
+    <td>None (resets on leave)</td>
+  </tr>
+  <tr>
+    <td>3</td><td><strong>Paranoia Curse</strong></td>
+    <td>3 wrong clicks in a row</td>
+    <td>Screen pulses red, +20 suspicion</td>
+    <td>Normal objects flash with false red glow. Must buy Therapy ($15) to cure.</td>
+  </tr>
+  <tr>
+    <td>4</td><td><strong>Entity Enraged</strong></td>
+    <td>Leave room with danger ≥70</td>
+    <td>Room marked ENRAGED on map</td>
+    <td>Next visit: danger rises +50% faster, more anomalies generated</td>
+  </tr>
+  <tr>
+    <td>5</td><td><strong>Fatigue Curse</strong></td>
+    <td>Investigate 5+ rooms in one day without rest</td>
+    <td>Timer accelerates +30%</td>
+    <td>Persists until Sunday rest or paid rest day ($50)</td>
+  </tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>7. Entity Identification &amp; Cross-Room Clues</h2>
+
+<div class="highlight-box">
+<p><strong>Core tension:</strong> You don't know which entity haunts each room.
+Symptoms for the <em>same</em> entity may appear in <em>multiple rooms</em>
+across different floors. Detective work is required.</p>
+</div>
+
+<h3>Unknown Entities at Start</h3>
+<ul>
+  <li>Floor plan shows room <strong>names only</strong> — no entity icons initially.</li>
+  <li>Entering a room: <code>ENTITY: ??? — investigate to identify</code>.</li>
+  <li>Anomalous objects reveal <strong>symptom clues</strong> (e.g. "sulfur smell", "chalk marks").</li>
+  <li>Clues are global — they persist across rooms and days in your journal.</li>
+</ul>
+
+<h3>Cross-Room Clue Gathering</h3>
+
+<p>Same entity may have clues in multiple rooms:</p>
+
+<div class="clue-compare">
+  <div class="clue-room">
+    <div class="clue-room-name">STUDY</div>
+    <div class="clue-room-floor">Floor 2</div>
+    <div class="clue-entry"><strong>CANDLES:</strong> 4 in arc (4+ candles)</div>
+    <div class="clue-entry"><strong>FLOOR:</strong> chalk marks</div>
+    <div class="clue-entry"><strong>WALL:</strong> pentagram (inverted symbols)</div>
+    <div class="clue-entry"><strong>VENT:</strong> sulfur mist (sulfur smell)</div>
+  </div>
+  <div class="clue-room" style="border-top-color:var(--gold);">
+    <div class="clue-room-name">KITCHEN</div>
+    <div class="clue-room-floor">Floor 1</div>
+    <div class="clue-entry"><strong>OVEN:</strong> heat haze (heat haze)</div>
+    <div class="clue-entry"><strong>WINDOW:</strong> sulfuric air (sulfur smell)</div>
+    <div class="clue-entry"><strong>FLOOR:</strong> chalk circle (chalk marks)</div>
+  </div>
+  <div class="clue-match">
+    5/5 Demon symptoms matched → <strong>IDENTITY CONFIRMED</strong><br>
+    Player now knows: <strong>Study AND Kitchen are Demon-occupied</strong>
+  </div>
+</div>
+
+<h3>How Identification Works</h3>
+<ol>
+  <li>Player investigates rooms across floors</li>
+  <li>Anomalous objects yield symptom clues with room source tagged</li>
+  <li>Player opens laptop (YOUR ROOM only) → Haunted Wiki</li>
+  <li>Wiki auto-compares all gathered clues against entity profiles</li>
+  <li>2+ matching symptoms → entity profile unlocks, ritual sequence revealed</li>
+  <li>Unidentified entities remain ??? until enough clues or combat reveals them</li>
+</ol>
+
+<h3>Entity Symptom Profiles</h3>
+
+<table>
+  <tr><th>Entity</th><th>Symptoms</th><th>Banish Sequence</th></tr>
+  <tr><td>Demon</td><td>4+ candles, chalk marks, inverted symbols, sulfur smell, heat haze</td><td>Holy Water → Salt Circle → Crucifix → EXORCISM</td></tr>
+  <tr><td>Ghost</td><td>Cold spot, floating object, EVP whisper, frost, flickering light</td><td>Iron Nails → Salt Line → Sage Bundle → EXORCISM</td></tr>
+  <tr><td>Vampire</td><td>No reflection, soil trail, bite marks, garlic wilted, broken seal</td><td>Garlic Wreath → Silver Mirror → Silver Stake → EXORCISM</td></tr>
+  <tr><td>Zombie</td><td>Drag marks, broken chain, green miasma, decay smell, handprints</td><td>Door Chain → Blessed Oil → Purification Salt → EXORCISM</td></tr>
+  <tr><td>Witch</td><td>Hex bags, bone piles, black cat, blood sigils, brew bubbling</td><td>Silver Mirror → Fire Kit → Silver Mirror → EXORCISM</td></tr>
+  <tr><td>Shadow Entity</td><td>Shifting shadow, flickering bulb, torn catcher, cold wall, whispers</td><td>Dream Catcher → Light Talisman → Sage Bundle → EXORCISM</td></tr>
+  <tr><td>Poltergeist</td><td>Upside-down chair, TV static, wall scratches, broken glass, floating</td><td>Anchor Kit → Salt Line → Anchor Kit → EXORCISM</td></tr>
+  <tr><td>Possession</td><td>Latin text, levitating furniture, blank stare, water hiss, head rotation</td><td>Holy Water → Iron Restraints → Holy Water → EXORCISM</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>8. Random Combat Event</h2>
+
+<p>Combat is <strong>not player-initiated</strong>. It triggers as a random event when
+either the danger meter OR the suspicion meter hits 100 during investigation.
+The entity breaches confinement and attacks.</p>
+
+<h3>Combat Trigger Conditions</h3>
+
+<table>
+  <tr><th>Trigger</th><th>Threshold</th><th>Result</th></tr>
+  <tr><td>Danger reaches 100</td><td>Too long / missed anomalies / high floor</td><td>Entity attacks — combat overlay appears</td></tr>
+  <tr><td>Suspicion reaches 100</td><td>Too many wrong clicks / spam</td><td>Entity notices you — attacks immediately</td></tr>
+</table>
+
+<h3>Combat Flow</h3>
+
+<p>Combat is turn-based, rock-paper-scissors style. Time is paused during combat.
+Enemy telegraphs its move → player picks correct counter-item from inventory.
+<strong>Wrong item = damage + item wasted. Correct = ritual advances. 4 correct counters + EXORCISM = victory.</strong></p>
+
+<div class="combat-mockup">
+  <div class="cm-header">ENTITY BREACH — DEMON'S STUDY</div>
+  <div class="cm-body">
+    <div class="cm-hp">HP: <span class="hp-bar-bg"><span class="hp-bar" style="width:50%"></span></span> 10/20</div>
+    <div class="cm-flavor">"Danger peaked! The entity reveals itself!"</div>
+    <div class="cm-entity">ENTITY: DEMON — identity confirmed automatically</div>
+    <div class="cm-turn">
+      <span class="tell">Turn 1: Demon gathers flame</span><br>
+      → <span class="counter">Counter with: Holy Water</span>
+    </div>
+    <div class="cm-inv">Inventory: Holy Water x1, Salt Circle x1, Crucifix x1</div>
+    <div class="cm-actions">
+      <span class="cm-btn">Use Holy Water</span>
+      <span class="cm-btn">Use Salt Circle</span>
+      <span class="cm-btn">Use Crucifix</span>
+      <span class="cm-btn flee">FLEE -$20</span>
+    </div>
+  </div>
+</div>
+
+<h3>Combat Outcomes</h3>
+
+<table>
+  <tr><th>Result</th><th>Condition</th><th>Effect</th></tr>
+  <tr>
+    <td><strong>Victory</strong></td>
+    <td>All 4 turns correct counter + final EXORCISM</td>
+    <td>Room BANISHED permanently. +$100. Entity auto-identified in journal. Room becomes safe (no danger, quick $5 sweep optional).</td>
+  </tr>
+  <tr>
+    <td><strong>Flee</strong></td>
+    <td>Click FLEE during combat</td>
+    <td>−$20 penalty. Entity ENRAGED for next day (+50% danger speed, more anomalies, fewer tells). HP not regained.</td>
+  </tr>
+  <tr>
+    <td><strong>Defeat</strong></td>
+    <td>HP reaches 0</td>
+    <td>Game over. Restart from Day 1. Retained: discovered entity profiles (knowledge carries).</td>
+  </tr>
+</table>
+
+<h3>Preparation Quality Affects Combat</h3>
+
+<table>
+  <tr><th>Quality</th><th>Condition</th><th>Effect</th></tr>
+  <tr><td>Perfect</td><td>Entity identified + all 3 items bought + no curses</td><td>All 4 tells visible. Full text + animation. +2 damage.</td></tr>
+  <tr><td>Good</td><td>Entity identified + some items bought</td><td>Turns 1, 3 visible. Turns 2, 4 vague hints.</td></tr>
+  <tr><td>Decent</td><td>Entity identified, no items</td><td>Only turn 1 tell visible. Blind guessing after.</td></tr>
+  <tr><td>Poor</td><td>Entity unknown, random items bought</td><td>No tells. "Something stirs…" — pure guesswork.</td></tr>
+  <tr><td>Critical</td><td>Entity unknown, no items, multiple curses</td><td>Fake tells! "Flame gathering" = actually curse. Near-guaranteed death.</td></tr>
+</table>
+
+<h3>Enemy Ritual Sequences</h3>
+
+<table>
+  <tr><th>Entity</th><th>Turn 1</th><th>Turn 2</th><th>Turn 3</th><th>Turn 4</th></tr>
+  <tr><td>Demon</td><td>Flame gather → Holy Water</td><td>Curse mark → Salt Circle</td><td>Dark summon → Crucifix</td><td>EXORCISM</td></tr>
+  <tr><td>Ghost</td><td>Phase through → Iron Nails</td><td>Cold snap → Salt Line</td><td>Wail → Sage Bundle</td><td>EXORCISM</td></tr>
+  <tr><td>Vampire</td><td>Lunge → Garlic Wreath</td><td>Charm → Silver Mirror</td><td>Blood drain → Silver Stake</td><td>EXORCISM</td></tr>
+  <tr><td>Zombie</td><td>Heavy slam → Door Chain</td><td>Infect bite → Blessed Oil</td><td>Corpse drag → Purification Salt</td><td>EXORCISM</td></tr>
+  <tr><td>Witch</td><td>Hex cast → Silver Mirror</td><td>Brew heal → Fire Kit</td><td>Mirror images → Silver Mirror</td><td>EXORCISM</td></tr>
+  <tr><td>Shadow</td><td>Vanish → Dream Catcher</td><td>Ambush → Light Talisman</td><td>Fear drain → Sage Bundle</td><td>EXORCISM</td></tr>
+  <tr><td>Poltergeist</td><td>Throw furniture → Anchor Kit</td><td>Double throw → Salt Line</td><td>Room shake → Anchor Kit</td><td>EXORCISM</td></tr>
+  <tr><td>Possession</td><td>Psychic blast → Holy Water</td><td>Possess → Iron Restraints</td><td>Puppet → Holy Water</td><td>EXORCISM</td></tr>
+</table>
+
+<h3>Curse Effects in Combat</h3>
+
+<table>
+  <tr><th>Curse</th><th>Combat Penalty</th></tr>
+  <tr><td>Physical Injury</td><td>HP reduced by 3 entering combat</td></tr>
+  <tr><td>Vision Curse</td><td>25% chance enemy tell text garbled</td></tr>
+  <tr><td>Aura Curse</td><td>Enemy sequence order may shift randomly</td></tr>
+  <tr><td>Paranoia</td><td>25% chance fake tell shown</td></tr>
+  <tr><td>Fatigue</td><td>Only 3 sec to read tell before it fades</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>9. Research &amp; Shop (Laptop in YOUR ROOM)</h2>
+
+<p>Research and shop are <strong>only accessible from YOUR ROOM</strong> on Floor 1.
+Click YOUR ROOM on the map → enter your room → interact with laptop.</p>
+
+<div class="research-mockup">
+  <div class="rh-header">HAUNTED-WIKI.DARKNET — YOUR ROOM</div>
+  <div class="rh-body">
+    <div class="rh-tabs">
+      <span class="rh-tab active">RESEARCH</span>
+      <span class="rh-tab">SHOP</span>
+      <span class="rh-tab">EMAILS</span>
+    </div>
+    <div style="color:var(--text2);font-size:0.78em;margin-bottom:10px;">Clues gathered: 11 across 4 rooms.</div>
+    <div class="rh-entry">
+      <div class="rh-name">DEMON</div>
+      <div class="rh-clues">4/5 clues — IDENTIFIED</div>
+      <div class="rh-match">Found in: Study, Kitchen</div>
+      <div class="rh-match">Matched: chalk marks, sulfur smell, 4+ candles, heat haze</div>
+      <div class="rh-sequence">Banish: Holy Water → Salt Circle → Crucifix</div>
+    </div>
+    <div class="rh-entry">
+      <div class="rh-name">GHOST</div>
+      <div class="rh-clues">3/5 clues — IDENTIFIED</div>
+      <div class="rh-match">Found in: Basement, Cellar</div>
+      <div class="rh-sequence">Banish: Iron Nails → Salt Line → Sage Bundle</div>
+    </div>
+    <div class="rh-entry unknown">
+      <div class="rh-name">WITCH</div>
+      <div class="rh-clues">1/5 clues — Need more investigation</div>
+    </div>
+  </div>
+</div>
+
+<p>The wiki auto-cross-references all gathered clues against entity profiles.
+2+ matches = entity profile unlocks and banish ritual sequence revealed.
+Profiles with 0 matches remain [NO DATA] and grayed out.</p>
+
+<h3>Shop (Laptop Tab)</h3>
+
+<table>
+  <tr><th>Item</th><th>Cost</th><th>Effect</th><th>Uses</th></tr>
+  <tr><td>Holy Water</td><td>$10</td><td>Counter Demon flame, Possession blast</td><td>2</td></tr>
+  <tr><td>Salt Circle</td><td>$5</td><td>Counter Demon curse, Ghost cold snap, Poltergeist throw</td><td>1</td></tr>
+  <tr><td>Crucifix</td><td>$10</td><td>Counter Demon dark summon</td><td>1</td></tr>
+  <tr><td>Iron Nails</td><td>$5</td><td>Counter Ghost phase-through</td><td>1</td></tr>
+  <tr><td>Sage Bundle</td><td>$8</td><td>Counter Ghost wail, Shadow fear. Remove 1 curse mid-combat.</td><td>2</td></tr>
+  <tr><td>Anchor Kit</td><td>$8</td><td>Counter Poltergeist throw</td><td>1</td></tr>
+  <tr><td>Garlic Wreath</td><td>$10</td><td>Counter Vampire lunge</td><td>1 fight</td></tr>
+  <tr><td>Silver Mirror</td><td>$10</td><td>Counter Vampire charm, Witch hex + mirror images</td><td>1</td></tr>
+  <tr><td>Silver Stake</td><td>$12</td><td>Counter Vampire blood drain</td><td>1</td></tr>
+  <tr><td>Door Chain</td><td>$5</td><td>Counter Zombie heavy slam</td><td>1</td></tr>
+  <tr><td>Blessed Oil</td><td>$7</td><td>Counter Zombie infect, remove poison, heal 2 HP</td><td>2</td></tr>
+  <tr><td>Purification Salt</td><td>$5</td><td>Counter Zombie corpse drag</td><td>1</td></tr>
+  <tr><td>Fire Kit</td><td>$12</td><td>Counter Witch brew, +dmg</td><td>1</td></tr>
+  <tr><td>Dream Catcher</td><td>$12</td><td>Counter Shadow Entity vanish</td><td>1 fight</td></tr>
+  <tr><td>Light Talisman</td><td>$10</td><td>Reveal Shadow Entity, counter ambush</td><td>1 fight</td></tr>
+  <tr><td>Iron Restraints</td><td>$15</td><td>Counter Possession possess attempt</td><td>1</td></tr>
+  <tr><td>Night Goggles</td><td>$25</td><td>Negate vision curse, see anomalies in dark rooms</td><td>1 day</td></tr>
+  <tr><td>First-Aid Kit</td><td>$7</td><td>Heal 5 HP mid-combat or remove physical injury</td><td>2</td></tr>
+  <tr><td>Therapy</td><td>$15</td><td>Remove Paranoia curse</td><td>Instant</td></tr>
+  <tr><td>Ritual Cleansing</td><td>$25</td><td>Remove 1 vision or aura curse</td><td>Instant</td></tr>
+  <tr><td>Prof. Cleansing</td><td>$30</td><td>Remove 1 any curse</td><td>Instant</td></tr>
+</table>
+
+<p><strong>Key constraint:</strong> Items are per-entity. Player must buy correct items
+for the entity they <em>suspect</em> before investigation. Wrong items = wasted money.
+No refunds. No mid-combat shop. You buy what you think you'll need.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>10. Curse &amp; Injury System</h2>
+
+<table>
+  <tr><th>Type</th><th>Source</th><th>Daytime Effect</th><th>Combat Effect</th><th>Cure ($)</th></tr>
+  <tr>
+    <td>Physical Injury</td>
+    <td>Wrong combat counter, 3+ wrong clicks in one room</td>
+    <td>−20% inspection speed, slower mouse</td>
+    <td>HP reduced by 3 entering combat</td>
+    <td>First-aid kit ($7)</td>
+  </tr>
+  <tr>
+    <td>Vision Curse</td>
+    <td>Wrong exile item use, demon/witch encounter</td>
+    <td>Anomaly glow fainter, shorter flicker</td>
+    <td>25% tell text garbled</td>
+    <td>Ritual cleansing ($25)</td>
+  </tr>
+  <tr>
+    <td>Aura Curse</td>
+    <td>Ghost/shadow encounter, combat loss</td>
+    <td>Danger rises +20% faster</td>
+    <td>Sequence order may shift mid-fight</td>
+    <td>Prof. cleansing ($30)</td>
+  </tr>
+  <tr>
+    <td>Paranoia</td>
+    <td>3+ wrong clicks in a row (carelessness)</td>
+    <td>Normal objects flash false red — clicking them spikes danger</td>
+    <td>25% fake tell shown</td>
+    <td>Therapy ($15)</td>
+  </tr>
+  <tr>
+    <td>Fatigue</td>
+    <td>5+ rooms investigated in one day, no rest</td>
+    <td>Timer +30% faster, danger +30% faster</td>
+    <td>Only 3 sec to read tell</td>
+    <td>Rest day ($50 income lost)</td>
+  </tr>
+</table>
+
+<p><strong>Lose condition:</strong> HP reaches 0 in combat → game over, restart Day 1.
+Knowledge of identified entities carries over between runs.</p>
+
+<p><strong>Free rest:</strong> Every 7th day (Sunday) — clears fatigue.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>11. Economy</h2>
+
+<div class="economy-card">
+  <div class="econ-col">
+    <h4 style="color:var(--green);">INCOME</h4>
+    <div class="econ-row"><span>Daily savings</span><span class="amount">+$50</span></div>
+    <div class="econ-row"><span>Room correctly investigated</span><span class="amount">+$10</span></div>
+    <div class="econ-row"><span>Banished entity</span><span class="amount">+$100</span></div>
+    <div class="econ-row"><span>Weekly bonus (all rooms visited)</span><span class="amount">+$30</span></div>
+  </div>
+  <div class="econ-col">
+    <h4 style="color:var(--accent);">EXPENSES</h4>
+    <div class="econ-row expense"><span>Exile items</span><span class="amount">-$5 to -$15</span></div>
+    <div class="econ-row expense"><span>Equipment</span><span class="amount">-$5 to -$30</span></div>
+    <div class="econ-row expense"><span>Cures</span><span class="amount">-$7 to -$30</span></div>
+    <div class="econ-row expense"><span>Combat flee</span><span class="amount">-$20</span></div>
+  </div>
+  <div class="econ-goal">ESCAPE GOAL: $2,000 saved</div>
+</div>
+
+<p><strong>Tension:</strong> Buying wrong items for the wrong entity wastes money.
+Every dollar spent on items = one dollar less towards escape.
+Unvisited rooms accumulate danger → more combat events → more money lost.
+Skilled players banish entities cheaply and save faster.</p>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>12. Weekly Progression</h2>
+
+<table>
+  <tr><th>Week</th><th>Rooms</th><th>New Entities</th><th>Notes</th></tr>
+  <tr><td>1</td><td>4</td><td>Ghost, Poltergeist</td><td>Tutorial. 7-min timer. 2 floors active. Ghost haunts Basement + Cellar.</td></tr>
+  <tr><td>2</td><td>7</td><td>Vampire, Zombie</td><td>Timer tightens to 5.5 min. 3 floors active. Cross-room clues begin.</td></tr>
+  <tr><td>3</td><td>10</td><td>Demon, Witch</td><td>All 4 floors active. Curse combos dangerous. Entity cross-floor haunting common.</td></tr>
+  <tr><td>4</td><td>12</td><td>Shadow, Possession</td><td>Max pressure. 4.5 min timer. All entities cross-floor. Banished rooms stay safe.</td></tr>
+  <tr><td>5+</td><td>12</td><td>All active</td><td>Escape race. Any unvisited room enrages. Endurance.</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>13. Narrative &amp; Tone</h2>
+
+<div class="highlight-box">
+<p><strong>Genre:</strong> Dark comedy, bureaucratic horror.<br>
+<strong>Core joke:</strong> You are not heroic. You're a miser hunting entities in a multi-floor building
+because rent is $200/month. For that price you'll live with actual demons on multiple floors.</p>
+</div>
+
+<p><strong>Tone inspirations:</strong></p>
+<ul>
+  <li><em>Papers, Please</em> — bureaucratic dread</li>
+  <li><em>What We Do In The Shadows</em> — supernatural mundanity</li>
+  <li><em>House of Leaves</em> — unsettling domestic multi-floor horror</li>
+</ul>
+
+<h3>Sample Flavor Text</h3>
+<ul>
+  <li><strong>Landlord email:</strong> <em>"Basement has 2 presences. We're calling it a 'theme.' No rent change."</em></li>
+  <li><strong>Entity description:</strong> <em>"Standard Revenant Type B. Non-violent unless provoked. Provoked = sharing symptoms across floors."</em></li>
+  <li><strong>End-of-day:</strong> <em>"The Study and Kitchen both smell of sulfur. Probably related. Definitely not your problem at $200/month."</em></li>
+</ul>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>14. Edge Cases &amp; Balance</h2>
+
+<table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr>
+    <td>Curse death spiral</td>
+    <td>Sunday rest, mercy mechanic (3rd wrong click = warning first), emergency loan</td>
+  </tr>
+  <tr>
+    <td>All-in-one strategy</td>
+    <td>Items are entity-specific. No universal item. Cross-room entities force rotation.</td>
+  </tr>
+  <tr>
+    <td>Overwhelming late game</td>
+    <td>Banished rooms stay safe permanently. Player clears dangerous floors first.</td>
+  </tr>
+  <tr>
+    <td>Boring early game</td>
+    <td>Tutorial day has surprise combat (Ghost breaks confinement). Immediate stakes.</td>
+  </tr>
+  <tr>
+    <td>Combat trivialization</td>
+    <td>Prep quality gates tells. Must earn clues + buy items. Memory check under pressure.</td>
+  </tr>
+  <tr>
+    <td>Wiki = walkthrough</td>
+    <td>Clues are partial — never 100% match. Red herrings from other entities. Only 2/5 symptoms needed.</td>
+  </tr>
+  <tr>
+    <td>Floor hopping exploit</td>
+    <td>Unvisited floors accumulate danger overnight. Must rotate or face enraged entities.</td>
+  </tr>
+  <tr>
+    <td>Runaway economy</td>
+    <td>$2,000 goal with $5-$30 items creates strategic spending tension. 25-40 day target.</td>
+  </tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>15. Technical Notes (Godot)</h2>
+
+<table>
+  <tr><th>Aspect</th><th>Recommendation</th></tr>
+  <tr><td>Nodes</td><td>Control nodes for UI (floor tabs, danger bars, clues panel). Node2D for room scenes. Separate scenes for each floor layout.</td></tr>
+  <tr><td>State</td><td>Godot Resources (.tres) for entity definitions (symptoms, banish sequence, tells). JSON save for player progress.</td></tr>
+  <tr><td>Floor system</td><td>TabContainer + GridContainer per floor. Floor layouts defined in JSON. Stairs emit signals for floor transitions.</td></tr>
+  <tr><td>Timer</td><td>Scene tree timer. Paused during: laptop, combat, evening/night. Running during: investigation, map navigation.</td></tr>
+  <tr><td>Combat</td><td>Turn-based state machine. EntityResource defines sequence of {tell_text, correct_item, damage}. Prep tier filters tells.</td></tr>
+  <tr><td>Clue matching</td><td>Entity profile has symptom_tags[] array. Clue cards have {symptom_tag, room_id, floor}. Auto-compare for wiki display.</td></tr>
+  <tr><td>Pixel art</td><td>32×32 tileset for rooms. 4-8 color palette per floor mood (basement=darker, attic=warmer). Entity sprites: 64×64.</td></tr>
+  <tr><td>Save</td><td>Autosave at night. One slot. JSON: day, money, inventory, room_states, curses, banished_rooms, discovered_entities, global_clues[]</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>16. Development Roadmap</h2>
+
+<div class="todo-grid">
+  <div class="todo-card">
+    <h3>Vertical Slice (M1)</h3>
+    <ul>
+      <li>2 floors (Basement + Floor 1)</li>
+      <li>4 rooms (2 per floor) + YOUR ROOM</li>
+      <li>Full-screen room investigation with clickable objects</li>
+      <li>Danger meter + suspicion meter</li>
+      <li>Laptop with Wiki + Shop tabs</li>
+      <li>Random combat for 2 entities (Ghost, Demon)</li>
+      <li>Basic cross-room clue system</li>
+      <li>Carelessness penalties (1-3)</li>
+      <li>End-of-day review + save</li>
+    </ul>
+  </div>
+  <div class="todo-card">
+    <h3>Alpha (M2)</h3>
+    <ul>
+      <li>All 4 floors + 12 rooms</li>
+      <li>All 8 entity types + banish sequences</li>
+      <li>Full cross-room clue generation (entities per room assignment)</li>
+      <li>Complete curse system (5 types) + combat effects</li>
+      <li>All 20 shop items</li>
+      <li>Full penalty system (all 5 penalties)</li>
+      <li>Weekly room unlock progression</li>
+      <li>Sunday rest + fatigue mechanic</li>
+      <li>Save/load with entity knowledge persistence</li>
+    </ul>
+  </div>
+  <div class="todo-card">
+    <h3>Beta (M3)</h3>
+    <ul>
+      <li>Full 12 rooms with all visual states</li>
+      <li>Sound design (floor ambiance, entity SFX, UI)</li>
+      <li>Narrative emails + landlord flavor text</li>
+      <li>Difficulty curve tuning (danger speed, anomaly generation)</li>
+      <li>Playtest &amp; balance (economy, timer, curse spiral)</li>
+      <li>Pixel art pass (all 4 floor tilesets, entity sprites)</li>
+      <li>Win screen ($2,000 escape)</li>
+      <li>Game over screen + restart flow</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>17. Unique Selling Points</h2>
+
+<ol>
+  <li><strong>Unknown entities across floors:</strong> You don't know what haunts each room. Symptoms for one entity may appear in multiple rooms on different floors — detective work required.</li>
+  <li><strong>Two-phase tension:</strong> Investigation phase (find clues, manage danger) → Random combat phase (use knowledge to fight). Both phases affect each other.</li>
+  <li><strong>Carelessness punished:</strong> Spam clicks, misclicks, and rushing cause suspicion buildup → paranoia curse → false clues. Skilled play is clean play.</li>
+  <li><strong>Knowledge-based combat:</strong> World of Horror style ritual exile. No grinding — you win by correctly identifying the entity and memorizing its banish sequence.</li>
+  <li><strong>Compounding consequences:</strong> Curses alter how you perceive and interact with the game. Paranoia shows fake anomalies. Vision curse hides real ones.</li>
+  <li><strong>Dark comedic tone:</strong> Bureaucratic horror. Landlord treats entities as "amenities" and "energy density."</li>
+  <li><strong>Strategic floor routing:</strong> Basement rises danger 20% faster. Attic 10% faster. Must decide which floors to clear first. Unvisited floors = enraged rooms tomorrow.</li>
+</ol>
+
+<hr class="divider">
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>Version History</h2>
+
+<div class="changelog">
+<p><strong>v1.2 (May 2026) — Multi-Floor Investigation Overhaul</strong></p>
+<ul>
+  <li>Added 4-floor building (Basement, Floor 1, Floor 2, Attic)</li>
+  <li>Entities now unknown at start — discovered through symptom clue gathering</li>
+  <li>Cross-room clues: same entity type haunts multiple rooms across floors</li>
+  <li>Full-screen room investigation (no pop-ups, no side panels)</li>
+  <li>Laptop-only research and shop (YOUR ROOM, Floor 1)</li>
+  <li>Random combat event triggered by danger/suspicion meters</li>
+  <li>Carelessness penalty system (5 penalties: too fast, spam, paranoia curse, enraged, fatigue)</li>
+  <li>Suspicion meter separate from danger meter</li>
+  <li>Floor-specific danger modifiers (basement +20%, attic +10%)</li>
+  <li>Removed skip mechanic — all rooms must be addressed</li>
+  <li>Removed deliberate exile track — combat is always random event</li>
+  <li>Knowledge persistence: identified entities stay known between runs</li>
+</ul>
+<p><strong>v1.1 (May 2026)</strong> — Added two-track system, 4-phase exile, ritual combat, clue cards, pop-up inspection</p>
+<p><strong>v1.0 (May 2026)</strong> — Initial GDD: checklist inspection, curse system, basic economy, weekly progression</p>
+</div>
+
+<hr class="divider">
+
+<p style="text-align:center; color:var(--text2); font-size:0.85em; margin-top:40px;">
+Haunted Tenancy GDD v1.2 — Last updated May 2026<br>
+Built for Godot Engine — Pixel Art — Investigation Sim
+</p>
+
+</body>
+</html>
